@@ -1,9 +1,14 @@
+
 <div align="center">
 
-# :rocket: Hybrid RAG from Sparse to Dense Embeddings Playground
+<h1>
+  Hybrid RAG 🚀<br>
+  Sparse to Dense Embeddings Playground
+</h1>
 
-**A local-first playground for testing BM25, MiniLM dense retrieval, hybrid search, and citation-aware Ollama generation on BEIR-style datasets.**
+**A local-first RAG playground for comparing BM25, dense MiniLM retrieval, hybrid fusion, and citation-aware Ollama generation on BEIR datasets.**
 
+</div>
 <p align="center">
   <a href="#quickstart"><img alt="Quickstart" src="https://img.shields.io/badge/Quickstart-local%20setup-2ea44f?style=for-the-badge"></a>
   <a href="#architecture"><img alt="Architecture" src="https://img.shields.io/badge/Architecture-RAG%20pipeline-0969da?style=for-the-badge"></a>
