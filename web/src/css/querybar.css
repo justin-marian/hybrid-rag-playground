@@ -1,0 +1,46 @@
+.querybar {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.querybar__input {
+  flex: 1;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 14px;
+  font-size: 15px;
+  border-radius: var(--radius);
+  resize: vertical;
+  min-height: 48px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.querybar__input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.25);
+}
+
+.querybar__btn {
+  background: var(--accent-strong);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 110px;
+}
+
+.querybar__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.querybar__btn:not(:disabled):hover {
+  filter: brightness(1.1);
+}
