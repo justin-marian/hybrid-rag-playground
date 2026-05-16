@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hybrid-rag-beir"
+version = "0.1.0"
+description = "Hybrid RAG pipeline calibration over BEIR (NFCorpus, SciFact, FiQA)."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Justin Marian Popescu" }]
+license = { text = "MIT" }
+dependencies = [
+    "beir>=2.0.0",
+    "datasets>=4.8.5",
+    "numpy>=2.4.5",
+    "pandas>=3.0.3",
+    "scikit-learn",
+    "sentence-transformers>=5.5.0",
+    "torch>=2.2.0",
+    "weaviate-client>=4.7.0,<5.0.0",
+    "ollama>=0.3.0",
+    "matplotlib",
+    "seaborn>=0.13.2",
+    "pyyaml>=6.0",
+    "tqdm",
+    "click>=8.3.3",
+    "pyyaml>=6.0.3",
+    "rich>=15.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]",
+    "pydantic>=2.7.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6.0",
+    "pre-commit>=4.6.0",
+    "pytest>=9.0.3"
+]
+
+[project.scripts]
+mdad-index = "src.experiments.run_indexing:main"
+mdad-eval = "src.experiments.run_retrieval_eval:main"
+mdad-rag = "src.experiments.run_rag_demo:main"
+mdad-sweep = "src.experiments.run_sweep:main"
+mdad-demo = "src.experiments.run_demo_single:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"

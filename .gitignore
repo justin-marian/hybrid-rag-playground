@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+# BEIR datasets must never be committed.
+data/beir/
+data/results/
+data/cache/
+data/*.zip
+
+# Generated images and plots are kept under images/ but large/raw outputs go here:
+images/*.tmp
+images/scratch/
+
+# Logs
+logs/
+*.log
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Web app (its own .gitignore covers most, this is a safety net)
+web/node_modules/
+web/dist/
+web/.vite/
+web/bun.lockb
+web/.env
+web/.env.local
