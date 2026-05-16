@@ -1,0 +1,221 @@
+"""HTTP routes for the RAG API."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, Request
+
+from api.schemas import (
+    ConfigResponse,
+    DatasetInfo, DatasetsResponse,
+    HealthResponse, Hit,
+    RagRequest, RagResponse,
+    RetrieveRequest, RetrieveResponse)
+from src.rag.prompt_builder import build_prompt
+from src.utils.logging import get_logger
+from src.utils.paths import ROOT
+from src.weaviate_io.indexer import collection_size
+
+logger = get_logger(__name__)
+router = APIRouter()
+
+
+def get_context(request: Request) -> Any:
+    """Return the application context stored on FastAPI state."""
+    ctx = getattr(request.app.state, "ctx", None)
+    if ctx is not None:
+        return ctx
+
+    raise HTTPException(503, "API context not initialized.")
+
+
+def read_prompt_template(ctx: Any) -> str:
+    """Read the prompt template from Markdown or fall back to rag.yaml."""
+    prompt_path = ROOT / "prompts" / "rag_prompt.md"
+    if not prompt_path.exists():
+        return ctx.rag_cfg["prompt_template"]
+
+    text = prompt_path.read_text(encoding="utf-8-sig")
+    block = first_fenced_block(text)
+
+    if block is None:
+        return text
+
+    return strip_fence_language(block).strip() + "\n"
+
+
+def first_fenced_block(text: str) -> str | None:
+    """Return the first fenced Markdown block body, if present."""
+    if "```" not in text:
+        return None
+
+    parts = text.split("```")
+    return parts[1] if len(parts) >= 3 else None
+
+
+def strip_fence_language(block: str) -> str:
+    """Remove a leading Markdown fence language tag."""
+    lines = block.splitlines()
+
+    if not lines:
+        return block
+
+    first = lines[0].strip()
+    if first.startswith("{") or first.startswith("You"):
+        return block
+
+    return "\n".join(lines[1:])
+
+
+def hit_to_schema(hit: Any) -> Hit:
+    """Convert a retriever hit to an API schema object."""
+    return Hit(
+        rank=hit.rank, chunk_id=hit.chunk_id, doc_id=hit.doc_id,
+        title=hit.title, text=hit.text, score=hit.score)
+
+
+def collection_indexed_count(ctx: Any, collection: str) -> int | None:
+    """Return the Weaviate collection size when available."""
+    try:
+        if ctx.weaviate.collections.exists(collection):
+            return collection_size(ctx.weaviate, collection)
+    except Exception as exc:
+        logger.warning("Could not count collection %s: %s", collection, exc)
+
+    return None
+
+
+def check_weaviate_ready(ctx: Any) -> bool:
+    """Check whether Weaviate is reachable."""
+    try:
+        return bool(ctx.weaviate.is_ready())
+    except Exception as exc:
+        logger.warning("Weaviate readiness check failed: %s", exc)
+        return False
+
+
+def check_ollama_ready(ctx: Any) -> bool:
+    """Check whether Ollama is reachable."""
+    try:
+        ctx.llm._client.list()
+        return True
+    except Exception as exc:
+        logger.warning("Ollama reachability check failed: %s", exc)
+        return False
+
+
+def run_retrieval(ctx: Any, payload: RetrieveRequest | RagRequest) -> list[Any]:
+    """Run the selected retriever for a request payload."""
+    retriever = ctx.make_retriever(payload.dataset, payload.retriever, payload.alpha)
+    return retriever.search(payload.query, top_k=payload.top_k)
+
+
+def generate_answer(ctx: Any, prompt: str, model: str | None) -> tuple[str, str]:
+    """Generate an answer while temporarily honoring a model override."""
+    original_model = ctx.llm.model
+    try:
+        if model:
+            ctx.llm.model = model
+        return ctx.llm.generate(prompt), ctx.llm.model
+    finally:
+        ctx.llm.model = original_model
+
+
+@router.get("/health", response_model=HealthResponse)
+def health(request: Request) -> HealthResponse:
+    """Return dependency readiness for the web app."""
+    ctx = getattr(request.app.state, "ctx", None)
+
+    if ctx is None:
+        return HealthResponse(
+            status="degraded", weaviate_ready=False,
+            ollama_reachable=False, embedder_loaded=False,
+            detail="AppContext not initialised.")
+
+    weaviate_ready = check_weaviate_ready(ctx)
+    ollama_ready = check_ollama_ready(ctx)
+    embedder_loaded = ctx.embedder is not None
+
+    status = "ok" if weaviate_ready and ollama_ready and embedder_loaded else "degraded"
+    detail = None if status == "ok" else "One or more backends are unavailable."
+
+    return HealthResponse(
+        status=status, weaviate_ready=weaviate_ready,
+        ollama_reachable=ollama_ready, embedder_loaded=embedder_loaded, 
+        detail=detail)
+
+
+@router.get("/datasets", response_model=DatasetsResponse)
+def list_datasets(request: Request) -> DatasetsResponse:
+    """Return registered datasets and indexed object counts."""
+    ctx = get_context(request)
+    datasets = [DatasetInfo(
+        key=key, name=spec.name, split=spec.split,
+        description=spec.description, expected_size=spec.expected_size,
+        collection_name=ctx.collection_for(key),
+        indexed_count=collection_indexed_count(ctx, ctx.collection_for(key)))
+    for key, spec in ctx.registry.items()]
+    return DatasetsResponse(datasets=datasets)
+
+
+@router.get("/config", response_model=ConfigResponse)
+def get_config(request: Request) -> ConfigResponse:
+    """Return frontend defaults and available options."""
+    ctx = get_context(request)
+    rag_cfg = ctx.rag_cfg["rag"]
+    retrieval_cfg = ctx.retrieval_cfg["retrieval"]
+
+    return ConfigResponse(
+        embedding_model=ctx.retrieval_cfg["embedding"]["model_name"],
+        default_retriever=rag_cfg["retriever"], default_top_k=int(rag_cfg["top_k"]),
+        default_alpha=float(retrieval_cfg["hybrid_alpha"]),
+        default_dataset=rag_cfg["dataset"],
+        default_llm_model=ctx.rag_cfg["llm"]["model"],
+        available_datasets=list(ctx.registry.keys()))
+
+
+@router.post("/retrieve", response_model=RetrieveResponse)
+def retrieve(payload: RetrieveRequest, request: Request) -> RetrieveResponse:
+    """Run the selected retriever and return ranked hits."""
+    ctx = get_context(request)
+
+    try:
+        ctx.get_spec(payload.dataset)
+        hits = run_retrieval(ctx, payload)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except Exception as exc:
+        logger.exception("retrieve failed")
+        raise HTTPException(500, f"Retrieval failed: {exc}") from exc
+
+    return RetrieveResponse(
+        query=payload.query, dataset=payload.dataset, retriever=payload.retriever,
+        top_k=payload.top_k, alpha=payload.alpha, hits=[hit_to_schema(hit) for hit in hits])
+
+
+@router.post("/rag", response_model=RagResponse)
+def rag(payload: RagRequest, request: Request) -> RagResponse:
+    """Run retrieval, prompt construction, and local answer generation."""
+    ctx = get_context(request)
+
+    try:
+        spec = ctx.get_spec(payload.dataset)
+        hits = run_retrieval(ctx, payload)
+
+        prompt = build_prompt(
+            template=read_prompt_template(ctx), query=payload.query, hits=hits,
+            dataset_name=spec.name, max_chunk_chars=int(ctx.rag_cfg["rag"]["max_chunk_chars"]))
+
+        answer_text, model = generate_answer(ctx, prompt, payload.model)
+
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except Exception as exc:
+        logger.exception("rag failed")
+        raise HTTPException(500, f"RAG failed: {exc}") from exc
+
+    return RagResponse(
+        query=payload.query, dataset=payload.dataset, retriever=payload.retriever,
+        top_k=payload.top_k, alpha=payload.alpha, model=model,
+        answer=answer_text, prompt=prompt, hits=[hit_to_schema(hit) for hit in hits])
