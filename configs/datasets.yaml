@@ -1,0 +1,25 @@
+# Registry of BEIR datasets used.
+# The `url_template` is the public UKP Darmstadt mirror referenced by the BEIR docs.
+url_template: "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{name}.zip"
+
+# Where to download and cache BEIR archives (relative to the project root).
+download_root: "data/beir"
+
+datasets:
+  nfcorpus:
+    name: "nfcorpus"
+    split: "test"
+    description: "Medical / nutrition information retrieval (~3.6K docs)."
+    expected_size: 3633
+
+  scifact:
+    name: "scifact"
+    split: "test"
+    description: "Scientific fact-checking (~5K docs)."
+    expected_size: 5183
+
+  fiqa:
+    name: "fiqa"
+    split: "test"
+    description: "Financial Q&A (~57K docs)."
+    expected_size: 57638

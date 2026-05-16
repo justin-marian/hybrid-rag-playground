@@ -1,0 +1,39 @@
+# RAG configuration.
+
+llm:
+  provider: "ollama"
+  # Default per spec; switch to "llama3.2:3b" if you have 16 GB RAM.
+  model: "gemma2:2b"
+  host: "http://localhost:11434"
+  options:
+    temperature: 0.2
+    num_ctx: 4096
+    num_predict: 512
+
+rag:
+  # The dataset used for the end-to-end RAG demo (Cerința 3 + 4).
+  # This can be overridden on the CLI. Default suggestion: scifact (precise factual claims).
+  dataset: "scifact"
+  retriever: "hybrid"          # one of: bm25, dense, hybrid
+  top_k: 5
+  # Maximum characters per chunk text shown to the LLM (safety guard for ctx window).
+  max_chunk_chars: 1200
+
+demo:
+  num_queries: 10
+  results_dir: "data/results/rag"
+
+# The system / instruction template. {query} and {context_block} are filled in by prompt_builder.
+prompt_template: |
+  You are a local RAG assistant. Answer only using the provided context chunks.
+  If the answer is not supported by the context, say that the context is insufficient.
+  Cite every factual claim using the chunk IDs in square brackets, for example [chunk_id].
+  Do not invent citations.
+
+  Question:
+  {query}
+
+  Retrieved context:
+  {context_block}
+
+  Final answer:

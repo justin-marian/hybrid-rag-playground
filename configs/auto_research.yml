@@ -1,0 +1,238 @@
+# Automatic local experiment plan for the RAG Architecture.
+
+defaults:
+  retrieval_config: retrieval.yaml
+  rag_config: rag.yaml
+  datasets_config: datasets.yaml
+  sweep_config: system_arch.yaml
+
+  datasets:
+    - scifact
+    - nfcorpus
+    - fiqa
+
+  top_k_values:
+    - 5
+    - 10
+    - 15
+    - 20
+
+  hybrid_alphas:
+    - 0.00
+    - 0.25
+    - 0.50
+    - 0.75
+    - 1.00
+
+  chunk_sizes:
+    - 256
+    - 512
+    - 768
+    - 1024
+
+  overlap_ratios:
+    - 0.00
+    - 0.05
+    - 0.10
+    - 0.15
+
+  model: llama3.2:3b
+  num_rag_queries: 10
+
+execution:
+  stop_on_failure: false
+  write_logs: true
+  log_dir: logs/auto_research
+  results_dir: data/results
+  images_dir: images
+
+stages:
+###################################################################################
+  - name: indexing_default
+    description: Index all configured datasets using default retrieval.yaml settings.
+    enabled: true
+    module: src.experiments.run_indexing_eval
+    commands:
+      - args:
+          config: "{retrieval_config}"
+          datasets_config: "{datasets_config}"
+          recreate: true
+
+  - name: indexing_chunk_sweep
+    description: Re-index each dataset for each configured chunk size.
+    enabled: true
+    module: src.experiments.run_indexing_eval
+    matrix:
+      dataset: "{datasets}"
+      chunk_size: "{chunk_sizes}"
+      overlap_ratio: "{overlap_ratios}"
+    args:
+      dataset: "{dataset}"
+      config: "{retrieval_config}"
+      datasets_config: "{datasets_config}"
+      recreate: true
+      chunk_size: "{chunk_size}"
+      overlap_ratio: "{overlap_ratio}"
+###################################################################################
+  - name: retrieval_eval_default
+    description: Evaluate BM25, dense, and hybrid retrieval with default settings.
+    enabled: true
+    module: src.experiments.run_retrieval_eval
+    matrix:
+      dataset: "{datasets}"
+    args:
+      dataset: "{dataset}"
+      config: "{retrieval_config}"
+      datasets_config: "{datasets_config}"
+
+  - name: retrieval_eval_topk_alpha
+    description: Evaluate retrieval performance across top-k and hybrid alpha values.
+    enabled: true
+    module: src.experiments.run_retrieval_eval
+    matrix:
+      dataset: "{datasets}"
+      top_k: "{top_k_values}"
+      alpha: "{hybrid_alphas}"
+    args:
+      dataset: "{dataset}"
+      config: "{retrieval_config}"
+      datasets_config: "{datasets_config}"
+      top_k: "{top_k}"
+      alpha: "{alpha}"
+###################################################################################
+  - name: testing_full_sweep
+    description: Run the calibration sweep from system_arch.yaml for each dataset.
+    enabled: true
+    module: src.experiments.run_testing
+    matrix:
+      dataset: "{datasets}"
+    args:
+      retrieval_config: "{retrieval_config}"
+      test_calibration_config: "{sweep_config}"
+      datasets_config: "{datasets_config}"
+      dataset: "{dataset}"
+
+  - name: testing_alpha_only
+    description: Run only the hybrid alpha sweep.
+    enabled: false
+    module: src.experiments.run_testing
+    matrix:
+      dataset: "{datasets}"
+    args:
+      retrieval_config: "{retrieval_config}"
+      test_calibration_config: "{sweep_config}"
+      datasets_config: "{datasets_config}"
+      dataset: "{dataset}"
+      skip_top_k: true
+      skip_chunk: true
+###################################################################################
+  - name: testing_topk_only
+    description: Run only the top-k sweep.
+    enabled: false
+    module: src.experiments.run_testing
+    matrix:
+      dataset: "{datasets}"
+    args:
+      retrieval_config: "{retrieval_config}"
+      test_calibration_config: "{sweep_config}"
+      datasets_config: "{datasets_config}"
+      dataset: "{dataset}"
+      skip_alpha: true
+      skip_chunk: true
+
+  - name: testing_chunk_only
+    description: Run only the chunk-size sweep. This re-indexes collections.
+    enabled: false
+    module: src.experiments.run_testing
+    matrix:
+      dataset: "{datasets}"
+    args:
+      retrieval_config: "{retrieval_config}"
+      test_calibration_config: "{sweep_config}"
+      datasets_config: "{datasets_config}"
+      dataset: "{dataset}"
+      skip_alpha: true
+      skip_top_k: true
+###################################################################################
+  - name: rag_demo_hybrid
+    description: Run end-to-end RAG demo using the hybrid retriever.
+    enabled: true
+    module: src.experiments.run_rag_demo
+    matrix:
+      dataset: "{datasets}"
+      top_k: "{top_k_values}"
+      alpha: "{hybrid_alphas}"
+    args:
+      retrieval_config: "{retrieval_config}"
+      rag_config: "{rag_config}"
+      datasets_config: "{datasets_config}"
+      dataset: "{dataset}"
+      retriever: hybrid
+      top_k: "{top_k}"
+      alpha: "{alpha}"
+      model: "{model}"
+      num_queries: "{num_rag_queries}"
+
+  - name: rag_demo_bm25
+    description: Run end-to-end RAG demo using BM25.
+    enabled: false
+    module: src.experiments.run_rag_demo
+    matrix:
+      dataset: "{datasets}"
+      top_k: "{top_k_values}"
+    args:
+      retrieval_config: "{retrieval_config}"
+      rag_config: "{rag_config}"
+      datasets_config: "{datasets_config}"
+      dataset: "{dataset}"
+      retriever: bm25
+      top_k: "{top_k}"
+      model: "{model}"
+      num_queries: "{num_rag_queries}"
+
+  - name: rag_demo_dense
+    description: Run end-to-end RAG demo using dense retrieval.
+    enabled: false
+    module: src.experiments.run_rag_demo
+    matrix:
+      dataset: "{datasets}"
+      top_k: "{top_k_values}"
+    args:
+      retrieval_config: "{retrieval_config}"
+      rag_config: "{rag_config}"
+      datasets_config: "{datasets_config}"
+      dataset: "{dataset}"
+      retriever: dense
+      top_k: "{top_k}"
+      model: "{model}"
+      num_queries: "{num_rag_queries}"
+###################################################################################
+  - name: single_query_demo
+    description: Run one rich terminal demo query per dataset.
+    enabled: true
+    module: src.experiments.run_single
+    matrix:
+      dataset: "{datasets}"
+    args:
+      retrieval_config: "{retrieval_config}"
+      rag_config: "{rag_config}"
+      datasets_config: "{datasets_config}"
+      dataset: "{dataset}"
+      top_k: 5
+      alpha: 0.50
+      model: "{model}"
+
+  - name: single_query_custom
+    description: Run one custom query. Enable and edit query when needed.
+    enabled: false
+    module: src.experiments.run_single
+    args:
+      retrieval_config: "{retrieval_config}"
+      rag_config: "{rag_config}"
+      datasets_config: "{datasets_config}"
+      dataset: scifact
+      query: "What is the evidence for this scientific claim?"
+      top_k: 5
+      alpha: 0.50
+      model: "{model}"
+###################################################################################

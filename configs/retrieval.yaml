@@ -1,0 +1,30 @@
+# Retrieval + indexing configuration.
+
+embedding:
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  batch_size: 64
+  normalize: true     # normalize for cosine similarity
+  cache_dir: "data/cache/embeddings"
+
+chunking:
+  # Fixed-size chunking with 10% overlap (as required by the spec).
+  strategy: "fixed"
+  chunk_size_tokens: 256
+  overlap_ratio: 0.10
+  # We approximate tokens with the MiniLM tokenizer; falls back to word-level if unavailable.
+  tokenizer: "sentence-transformers/all-MiniLM-L6-v2"
+
+weaviate:
+  host: "localhost"
+  http_port: 8080
+  grpc_port: 50051
+  # One collection per dataset; this is the prefix.
+  collection_prefix: "Hybrid_RAG_BEIR"
+  # Distance is cosine because we normalize embeddings; Weaviate default index is HNSW.
+  distance: "cosine"
+  batch_size: 200
+
+retrieval:
+  top_k: 10
+  # Default alpha for Weaviate's built-in hybrid search: 0.5 (equal weight).
+  hybrid_alpha: 0.5
