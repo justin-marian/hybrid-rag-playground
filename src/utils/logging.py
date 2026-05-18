@@ -14,7 +14,7 @@ NOISY_LOGGERS = ("urllib3", "httpx", "sentence_transformers", "weaviate")
 
 def log_level() -> int:
     """Resolve the configured log level from the environment."""
-    level_name = os.environ.get("MDAD_LOG_LEVEL", "INFO").upper()
+    level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
     return int(getattr(logging, level_name, logging.INFO))
 
 
@@ -25,10 +25,20 @@ def handlers_and_format() -> tuple[list[logging.Handler], str]:
     return [logging.StreamHandler()], "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s"
 
 
-def quiet_third_party_loggers() -> None:
+def quiet_third_party_loggers():
     """Reduce noise from verbose dependency loggers."""
     for name in NOISY_LOGGERS:
         logging.getLogger(name).setLevel(logging.WARNING)
+
+
+def quiet_third_party_warnings() -> None:
+    """Suppress noisy dependency warnings that do not affect experiment results."""
+    import warnings
+
+    warnings.filterwarnings("ignore", category=ResourceWarning, message=r".*unclosed file.*corpus\.jsonl.*")
+    warnings.filterwarnings("ignore", category=ResourceWarning, message=r".*unclosed file.*data/beir/.*")
+    warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*hf_xet\.download_files\(\) is deprecated.*")
+    warnings.filterwarnings("ignore", message=r".*Token indices sequence length is longer than the specified maximum sequence length.*")
 
 
 def configure_root() -> None:
@@ -37,6 +47,7 @@ def configure_root() -> None:
     if CONFIGURED:
         return
 
+    quiet_third_party_warnings()
     handlers, fmt = handlers_and_format()
     logging.basicConfig(level=log_level(), format=fmt, datefmt="%H:%M:%S", handlers=handlers, force=True)
     quiet_third_party_loggers()
