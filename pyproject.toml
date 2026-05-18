@@ -3,11 +3,11 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hybrid-rag-beir"
+name = "hybrid-rag-playground"
 version = "0.1.0"
 description = "Hybrid RAG pipeline calibration over BEIR (NFCorpus, SciFact, FiQA)."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [{ name = "Justin Marian Popescu" }]
 license = { text = "MIT" }
 dependencies = [
@@ -15,6 +15,7 @@ dependencies = [
     "datasets>=4.8.5",
     "numpy>=2.4.5",
     "pandas>=3.0.3",
+    "tabulate>=0.10.0",
     "scikit-learn",
     "sentence-transformers>=5.5.0",
     "torch>=2.2.0",
@@ -40,11 +41,11 @@ dev = [
 ]
 
 [project.scripts]
-mdad-index = "src.experiments.run_indexing:main"
-mdad-eval = "src.experiments.run_retrieval_eval:main"
-mdad-rag = "src.experiments.run_rag_demo:main"
-mdad-sweep = "src.experiments.run_sweep:main"
-mdad-demo = "src.experiments.run_demo_single:main"
+index = "src.experiments.run_indexing:main"
+eval = "src.experiments.run_retrieval_eval:main"
+rag = "src.experiments.run_rag_demo:main"
+sweep = "src.experiments.run_sweep:main"
+demo = "src.experiments.run_demo_single:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

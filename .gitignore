@@ -16,6 +16,7 @@ dist/
 .venv/
 venv/
 env/
+.env
 
 # IDE
 .vscode/
@@ -29,9 +30,10 @@ Thumbs.db
 # Project-specific
 # BEIR datasets must never be committed.
 data/beir/
-data/results/
 data/cache/
 data/*.zip
+# Except these file results
+!data/results/*
 
 # Generated images and plots are kept under images/ but large/raw outputs go here:
 images/*.tmp
