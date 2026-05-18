@@ -52,12 +52,14 @@ def ensure_collection(client: WeaviateClient, name: str, distance: str = "cosine
         logger.info("Collection %s already exists; reusing.", name)
         return
 
-    distance_metric = distance_metric(distance)
+    metric = distance_metric(distance)
     logger.info("Creating Weaviate collection %s (distance=%s)", name, distance)
     client.collections.create(
-        name=name, vectorizer_config=wvcc.Configure.Vectorizer.none(),
-        vector_index_config=wvcc.Configure.VectorIndex.hnsw(distance_metric=distance_metric),
-        inverted_index_config=wvcc.Configure.inverted_index(), properties=CHUNK_PROPERTIES)
+        name=name,
+        vector_config=wvcc.Configure.Vectors.self_provided(
+        vector_index_config=wvcc.Configure.VectorIndex.hnsw(distance_metric=metric)),
+        inverted_index_config=wvcc.Configure.inverted_index(),
+        properties=CHUNK_PROPERTIES)
 
 
 def drop_collection(client: WeaviateClient, name: str) -> None:
