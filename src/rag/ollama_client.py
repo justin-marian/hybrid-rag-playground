@@ -23,7 +23,7 @@ class OllamaClient:
     options: dict[str, Any] = field(default_factory=dict)
     client: ollama.Client = field(init=False, repr=False)
 
-    def __post_init__(self) -> None:
+    def __post_init__(self):
         self.client = ollama.Client(host=self.host)
 
     @staticmethod
@@ -53,7 +53,7 @@ class OllamaClient:
             options=self.options or None)
         return self.prompt_message_content(response)
 
-    def ensure_model(self) -> None:
+    def ensure_model(self):
         """Pull the model when it is not available locally."""
         try:
             self.client.show(self.model)
