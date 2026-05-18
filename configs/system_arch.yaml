@@ -22,5 +22,5 @@ defaults:
   hybrid_alpha: 0.5
 
 output:
-  csv_path: "data/results/sweep_results.csv"
-  plot_path: "images/sweep_ndcg10.png"
+  csv_path: "data/results/{dataset}_sweep_results.csv"
+  plot_path: "images/{dataset}_sweep_ndcg10.png"

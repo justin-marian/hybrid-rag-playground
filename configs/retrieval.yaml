@@ -16,8 +16,8 @@ chunking:
 
 weaviate:
   host: "localhost"
-  http_port: 8080
-  grpc_port: 50051
+  http_port: 18080
+  grpc_port: 15051
   # One collection per dataset; this is the prefix.
   collection_prefix: "Hybrid_RAG_BEIR"
   # Distance is cosine because we normalize embeddings; Weaviate default index is HNSW.
