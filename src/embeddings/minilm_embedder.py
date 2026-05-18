@@ -21,7 +21,7 @@ CACHE_VERSION = 2
 
 def hash_text(text: str) -> str:
     """Return a deterministic SHA1 hash for one text."""
-    return hashlib.sha1(text.encode(" utf-8-sig")).hexdigest()
+    return hashlib.sha1(text.encode("utf-8-sig")).hexdigest()
 
 
 def safe_model_name(model_name: str) -> str:
@@ -46,7 +46,7 @@ class MiniLMEmbedder:
     cache_path: Path | None = field(default=None, init=False, repr=False)
     cache: dict[str, np.ndarray] = field(default_factory=dict, init=False, repr=False)
 
-    def __post_init__(self) -> None:
+    def __post_init__(self):
         if self.cache_dir is None:
             return
 
@@ -69,7 +69,7 @@ class MiniLMEmbedder:
             "cache_version": CACHE_VERSION, "model_name": str(self.model_name),
             "normalize": bool(self.normalize), "embedding_dim": int(self.dim)}
 
-    def load_cache(self) -> None:
+    def load_cache(self):
         """Load a compatible cache or rebuild on legacy/incomplete metadata."""
         if self.cache_path is None or not self.cache_path.exists():
             return
@@ -102,7 +102,7 @@ class MiniLMEmbedder:
         keys, vecs = data["keys"], data["vecs"]
         return keys.ndim == 1 and vecs.ndim == 2 and len(keys) == len(vecs) and vecs.shape[1] == self.dim
 
-    def save_cache(self) -> None:
+    def save_cache(self):
         """Persist the embedding cache with deterministic key ordering."""
         if self.cache_path is None or not self.cache:
             return
@@ -137,7 +137,7 @@ class MiniLMEmbedder:
         logger.info("Embedding cache summary: reused=%d rebuilt=%d removed=%d total=%d", reused, rebuilt, 0, total)
         return np.stack([self.cache[key] for key in keys], axis=0).astype(np.float32)
 
-    def encode_missing(self, texts: list[str], keys: list[str], missing_idx: list[int], show_progress: bool = True) -> None:
+    def encode_missing(self, texts: list[str], keys: list[str], missing_idx: list[int], show_progress: bool = True):
         """Encode uncached texts and insert them into the in-memory cache."""
         model = self.load_model()
         missing_texts = [texts[index] for index in missing_idx]
