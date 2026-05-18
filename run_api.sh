@@ -3,7 +3,10 @@
 # Override host/port via env vars: API_HOST, API_PORT.
 set -euo pipefail
 
-HOST="${API_HOST:-0.0.0.0}"
-PORT="${API_PORT:-8000}"
+export API_HOST="${API_HOST:-0.0.0.0}"
+export API_PORT="${API_PORT:-8001}"
 
-exec uvicorn app:app --host "$HOST" --port "$PORT" --reload
+python -m uvicorn app:app \
+    --reload \
+    --host "$API_HOST" \
+    --port "$API_PORT"
