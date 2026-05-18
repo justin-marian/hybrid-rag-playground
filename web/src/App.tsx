@@ -94,6 +94,7 @@ function App() {
   const [bootError, setBootError] = useState<string | null>(null);
 
   useEffect(() => {
+    // sourcery skip: avoid-function-declarations-in-blocks
     async function bootstrap() {
       try {
         const [config, datasetResponse] = await Promise.all([api.config(), api.datasets()]);
