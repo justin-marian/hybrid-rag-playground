@@ -1,1 +1,1 @@
-"""FastAPI layer for the MDAD HW2 RAG pipeline."""
+"""FastAPI layer for the RAG pipeline."""

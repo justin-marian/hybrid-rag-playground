@@ -38,11 +38,7 @@ def read_prompt_template(ctx: Any) -> str:
 
     text = prompt_path.read_text(encoding="utf-8-sig")
     block = first_fenced_block(text)
-
-    if block is None:
-        return text
-
-    return strip_fence_language(block).strip() + "\n"
+    return text if block is None else strip_fence_language(block).strip() + "\n"
 
 
 def first_fenced_block(text: str) -> str | None:
@@ -98,7 +94,7 @@ def check_weaviate_ready(ctx: Any) -> bool:
 def check_ollama_ready(ctx: Any) -> bool:
     """Check whether Ollama is reachable."""
     try:
-        ctx.llm._client.list()
+        ctx.ollama.client.list()
         return True
     except Exception as exc:
         logger.warning("Ollama reachability check failed: %s", exc)

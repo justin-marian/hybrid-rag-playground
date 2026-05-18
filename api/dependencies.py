@@ -76,7 +76,7 @@ class AppContext:
 
         raise ValueError(f"Unknown retriever: {retriever!r}")
 
-    def close(self) -> None:
+    def close(self):
         """Close reusable network clients."""
         try:
             self.weaviate.close()
