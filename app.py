@@ -1,10 +1,11 @@
 """FastAPI entry point for the Hybrid RAG BEIR API.
 
-Run locally with:                       uvicorn app:app --reload --host 0.0.0.0 --port 8000
+Run locally with:                       uvicorn app:app --reload --host 0.0.0.0 --port 8001
 Or via the convenience launcher::       ./run_api.sh
 
-The server expects the Weaviate Docker container to be running and Ollama
-to be reachable at the host configured in ``configs/rag.yaml``.
+The server expects the Weaviate Docker container to be running on the ports
+configured in ``src/weaviate_io/client.py`` and Ollama to be reachable at the
+host configured in ``configs/rag.yaml``.
 """
 
 from __future__ import annotations
@@ -26,8 +27,8 @@ DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173", "http:
 
 
 def read_allowed_origins() -> list[str]:
-    """Read CORS origins from MDAD_CORS_ORIGINS."""
-    raw = os.environ.get("MDAD_CORS_ORIGINS", ",".join(DEFAULT_CORS_ORIGINS))
+    """Read CORS origins from CORS_ORIGINS."""
+    raw = os.environ.get("CORS_ORIGINS", ",".join(DEFAULT_CORS_ORIGINS))
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
@@ -59,10 +60,10 @@ def create_app() -> FastAPI:
     return app
 
 
-app_rag_ep = create_app()
+app = create_app()
 
 
-@app_rag_ep.get("/")
+@app.get("/")
 def root() -> dict[str, str]:
     """Return service metadata for browser access."""
     return {"name": "Hybrid RAG - IR based on BEIR", "docs": "/docs", "openapi": "/openapi.json", "api_prefix": "/api"}
