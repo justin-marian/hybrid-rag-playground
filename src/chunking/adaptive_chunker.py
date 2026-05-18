@@ -44,12 +44,10 @@ def split_sentences(text: str) -> list[str]:
     sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9ȘȚĂÂÎ])", text)
     return [sentence.strip() for sentence in sentences if sentence.strip()]
 
-def flush_current(chunks: list[str], curr_sentences: list[str]) -> None:
+def flush_current(chunks: list[str], curr_sentences: list[str]):
     """Append the current sentence buffer if it contains text."""
-    if curr_sentences:
-        chunk = " ".join(curr_sentences).strip()
-        if chunk:
-            chunks.append(chunk)
+    if curr_sentences and (chunk := " ".join(curr_sentences).strip()):
+        chunks.append(chunk)
 
 
 @dataclass
@@ -64,7 +62,7 @@ class AdaptiveDocChunker:
     preserve_title: bool = True
     tokenizer: Any | None = field(default=None, init=False, repr=False)
 
-    def __post_init__(self) -> None:
+    def __post_init__(self):
         if not 0.0 <= self.overlap_ratio < 1.0:
             raise ValueError("overlap_ratio must be in [0, 1).")
         if self.chunk_size_tokens < 64:
@@ -123,8 +121,7 @@ class AdaptiveDocChunker:
             if not window:
                 break
 
-            chunk = tokenizer.decode(window, skip_special_tokens=True).strip()
-            if chunk:
+            if chunk := tokenizer.decode(window, skip_special_tokens=True).strip():
                 chunks.append(chunk)
             if start + self.chunk_size_tokens >= len(token_ids):
                 break
@@ -201,10 +198,7 @@ class AdaptiveDocChunker:
                 continue
 
             chunk_tokens = self.token_count(chunk)
-            can_merge = (
-                merged and chunk_tokens < self.min_chunk_tokens and
-                self.token_count(merged[-1]) + chunk_tokens <= self.chunk_size_tokens)
-            if can_merge:
+            if (merged and chunk_tokens < self.min_chunk_tokens and self.token_count(merged[-1]) + chunk_tokens <= self.chunk_size_tokens):
                 merged[-1] = f"{merged[-1]} {chunk}".strip()
             else:
                 merged.append(chunk)
@@ -213,12 +207,10 @@ class AdaptiveDocChunker:
 
     def chunk_text(self, text: str) -> list[str]:
         """Return document-aware chunks for one text."""
-        text = normalize_text(text)
-        if not text:
+        if text := normalize_text(text):
+            return [text] if self.token_count(text) <= self.full_doc_thr_tokens else self.make_sentence_windows(text)
+        else:
             return []
-        if self.token_count(text) <= self.full_doc_thr_tokens:
-            return [text]
-        return self.make_sentence_windows(text)
 
     def chunk_document(self, doc_id: str, title: str, text: str, dataset: str) -> list[Chunk]:
         """Chunk one BEIR document while preserving source-document provenance."""
