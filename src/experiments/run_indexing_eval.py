@@ -39,9 +39,7 @@ def build_chunker(
         cfg: dict[str, Any], chunk_size_tokens: int,
         overlap_ratio: float) -> AdaptiveDocChunker:
     """Build the adaptive chunker."""
-    return AdaptiveDocChunker(
-        chunk_size_tokens=chunk_size_tokens, overlap_ratio=overlap_ratio,
-        tokenizer_name=cfg["chunking"].get("tokenizer"))
+    return AdaptiveDocChunker(chunk_size_tokens=chunk_size_tokens, overlap_ratio=overlap_ratio, tokenizer_name=cfg["chunking"].get("tokenizer"))
 
 
 def build_embedder(cfg: dict[str, Any]) -> MiniLMEmbedder:
@@ -51,10 +49,7 @@ def build_embedder(cfg: dict[str, Any]) -> MiniLMEmbedder:
         normalize=cfg["embedding"]["normalize"], cache_dir=cfg["embedding"]["cache_dir"])
 
 
-def index_dataset(
-        client: Any, spec: Any, cfg: dict[str, Any],
-        chunker: AdaptiveDocChunker, embedder: MiniLMEmbedder,
-        recreate: bool) -> None:
+def index_dataset(client: Any, spec: Any, cfg: dict[str, Any], chunker: AdaptiveDocChunker, embedder: MiniLMEmbedder, recreate: bool):
     """Index one BEIR dataset into Weaviate."""
     weaviate_cfg = cfg["weaviate"]
     coll_name = collection_name(weaviate_cfg["collection_prefix"], spec.key)
@@ -86,19 +81,13 @@ def index_dataset(
 @click.option("--recreate/--no-recreate", default=False, help="Drop and recreate collections.")
 @click.option("--chunk-size", type=int, default=None, help="Override chunk size in tokens.")
 @click.option("--overlap-ratio", type=float, default=None, help="Override chunk overlap ratio.")
-def main(
-        datasets: tuple[str, ...], config: str, datasets_config: str,
-        recreate: bool, chunk_size: int | None,
-        overlap_ratio: float | None) -> None:
+def main(datasets: tuple[str, ...], config: str, datasets_config: str, recreate: bool, chunk_size: int | None, overlap_ratio: float | None):
     """Index BEIR datasets into Weaviate using external vectors."""
     cfg, registry, selected_keys, chunk_size_tokens, overlap = read_defaults(config, datasets_config, datasets, chunk_size, overlap_ratio)
     chunker = build_chunker(cfg, chunk_size_tokens, overlap)
     embedder = build_embedder(cfg)
 
-    with weaviate_client(
-            host=cfg["weaviate"]["host"], 
-            http_port=cfg["weaviate"]["http_port"],
-            grpc_port=cfg["weaviate"]["grpc_port"]) as client:
+    with weaviate_client(host=cfg["weaviate"]["host"],  http_port=cfg["weaviate"]["http_port"], grpc_port=cfg["weaviate"]["grpc_port"]) as client:
         for key in selected_keys:
             index_dataset(client, registry[key], cfg, chunker, embedder, recreate)
 

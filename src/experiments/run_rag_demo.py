@@ -17,7 +17,7 @@ from src.retrieval.dense import DenseRetriever
 from src.retrieval.hybrid import HybridRetriever
 from src.utils.io import load_yaml, save_json
 from src.utils.logging import get_logger
-from src.utils.paths import IMAGES_DIR, RESULTS_DIR, ensure_dirs, resolve
+from src.utils.paths import DOCS_DIR, IMAGES_DIR, RESULTS_DIR, ensure_dirs, resolve
 from src.weaviate_io.client import weaviate_client
 from src.weaviate_io.schema import collection_name
 
@@ -39,9 +39,7 @@ def pick_queries(beir: Any, n_queries: int) -> list[tuple[str, str]]:
     return picked
 
 
-def build_retriever(
-        name: str, client: Any, collection: str,
-        embedder: MiniLMEmbedder, alpha: float) -> Retriever:
+def build_retriever(name: str, client: Any, collection: str, embedder: MiniLMEmbedder, alpha: float) -> Retriever:
     """Build the selected retriever for the Weaviate collection."""
     retriever_name = name.lower()
 
@@ -61,7 +59,7 @@ def truncate_cell(value: str, max_chars: int) -> str:
     return text[:max_chars] + ("…" if len(text) > max_chars else "")
 
 
-def render_markdown_summary(answers: list[dict[str, Any]], md_path: Path) -> None:
+def render_markdown_summary(answers: list[dict[str, Any]], md_path: Path):
     """Write a Markdown summary for manual report evaluation."""
     if not answers:
         logger.warning("Skipping RAG demo Markdown summary because no answers were produced.")
@@ -124,7 +122,7 @@ def build_llm(rag_cfg: dict[str, Any], model_name: str) -> OllamaClient:
     return llm
 
 
-def print_answer(query_id: str, query_text: str, answer: str) -> None:
+def print_answer(query_id: str, query_text: str, answer: str):
     """Print one demo answer in the expected console format."""
     print("\n" + "=" * 72)
     print(f"Q[{query_id}]: {query_text}")
@@ -139,7 +137,7 @@ def save_results(answers: list[dict[str, Any]], results_dir: Path) -> tuple[Path
     save_json(answers, json_path)
     logger.info("Wrote RAG demo JSON: %s", json_path)
 
-    md_path = IMAGES_DIR / "rag_demo.md"
+    md_path = DOCS_DIR / "RAG_DEMO.md"
     render_markdown_summary(answers, md_path)
     return json_path, md_path
 
@@ -157,7 +155,7 @@ def save_results(answers: list[dict[str, Any]], results_dir: Path) -> tuple[Path
 def main(
         retrieval_config: str, rag_config: str, datasets_config: str,
         dataset: str | None, retriever: str | None, top_k: int | None,
-        alpha: float | None, model: str | None, num_queries: int | None) -> None:
+        alpha: float | None, model: str | None, num_queries: int | None):
     """Run the end-to-end RAG demo on a fixed batch of queries."""
     retrieval_cfg, rag_cfg, settings = read_demo_settings(
         retrieval_config, rag_config,
@@ -201,7 +199,7 @@ def main(
     print("\nWrote:")
     print(f"  - {json_path}")
     print(f"  - {md_path}")
-    print("\nReminder (Cerința 3): manually mark at least one row in {md_path} as `hallucination` and discuss the cause in the report.")
+    print("\nReminder: manually mark at least one row in {md_path} as `hallucination` and discuss the cause in the report.")
 
 
 if __name__ == "__main__":

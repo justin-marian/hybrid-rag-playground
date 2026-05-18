@@ -146,7 +146,7 @@ def eval_one(
 def reindex_collection(
         client: Any, coll: str, beir: Any, 
         chunk_size: int, chunking: ChunkingSettings,
-        embedder: MiniLMEmbedder, settings: WeaviateSettings) -> None:
+        embedder: MiniLMEmbedder, settings: WeaviateSettings):
     """Drop and rebuild the collection with the requested chunk size."""
     chunker = AdaptiveDocChunker(chunk_size_tokens=chunk_size, overlap_ratio=chunking.overlap_ratio, tokenizer_name=chunking.tokenizer_name)
     ensure_collection(client, coll, distance=settings.distance, recreate=True)
@@ -158,7 +158,7 @@ def reindex_collection(
 def append_eval_row(
         rows: list[TestingRow], axis: str, value: float, 
         chunk_size: int, top_k: int, alpha: float, 
-        dataset: str, metrics: tuple[float, float, float]) -> None:
+        dataset: str, metrics: tuple[float, float, float]):
     """Append one hybrid test calibration result row."""
     recall, mrr, ndcg = metrics
     rows.append(TestingRow(
@@ -206,11 +206,10 @@ def test_calibration_chunk_size(
     return rows
 
 
-def plot_axis(ax: Axes, df: pd.DataFrame, axis_name: TestingAxis) -> None:
+def plot_axis(ax: Axes, df: pd.DataFrame, axis_name: TestingAxis):
     """Plot one nDCG@10 test calibration axis with seaborn."""
     required_cols = {"axis", "value", "ndcg_at_10"}
-    missing_cols = required_cols.difference(df.columns)
-    if missing_cols:
+    if missing_cols := required_cols.difference(df.columns):
         raise ValueError(f"Missing required columns: {sorted(missing_cols)}")
 
     sub = df.loc[df["axis"].eq(axis_name)].copy()
@@ -232,7 +231,7 @@ def plot_axis(ax: Axes, df: pd.DataFrame, axis_name: TestingAxis) -> None:
             textcoords="offset points", xytext=(0, 6), ha="center", fontsize=8)
 
 
-def plot_test_calibration(df: pd.DataFrame, out_path: str | Path) -> None:
+def plot_test_calibration(df: pd.DataFrame, out_path: str | Path):
     """Save the nDCG@10 calibration plot."""
     if df.empty:
         return
@@ -269,7 +268,7 @@ def save_results(rows: list[TestingRow], csv_path: str | Path, plot_path: str | 
     return df
 
 
-def print_recommendation(df: pd.DataFrame) -> None:
+def print_recommendation(df: pd.DataFrame):
     """Print the best observed configuration by nDCG@10."""
     if df.empty:
         return
@@ -287,7 +286,7 @@ def print_recommendation(df: pd.DataFrame) -> None:
     print(f"  ndcg@10:      {float(cast(Any, best['ndcg_at_10'])):.4f}")
 
 
-def run_test_calibration(args: TestingArgs) -> None:
+def run_test_calibration(args: TestingArgs):
     """Run calibration test calibration from parsed arguments."""
     retrieval_cfg, test_calibration_cfg = load_yaml(args.retrieval_config), load_yaml(args.test_calibration_config)
 
@@ -349,7 +348,7 @@ def parse_args(
 @click.option("--skip-chunk", is_flag=True, help="Skip the chunk-size test calibration; it re-indexes.")
 def main(
         retrieval_config: str, test_calibration_config: str, datasets_config: str, 
-        dataset: str | None, skip_alpha: bool, skip_top_k: bool, skip_chunk: bool) -> None:
+        dataset: str | None, skip_alpha: bool, skip_top_k: bool, skip_chunk: bool):
     """Run calibration test calibration and produce the nDCG@10 plot."""
     args = parse_args(
         retrieval_config, test_calibration_config, datasets_config, 

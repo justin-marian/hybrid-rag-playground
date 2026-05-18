@@ -17,7 +17,7 @@ from src.retrieval.dense import DenseRetriever
 from src.retrieval.hybrid import HybridRetriever
 from src.utils.io import load_yaml
 from src.utils.logging import get_logger
-from src.utils.paths import IMAGES_DIR, RESULTS_DIR, ensure_dirs
+from src.utils.paths import DATA_DIR, DOCS_DIR, RESULTS_DIR, ensure_dirs
 from src.weaviate_io.client import weaviate_client
 from src.weaviate_io.schema import collection_name
 
@@ -91,8 +91,7 @@ def build_embedder(cfg: dict[str, Any]) -> MiniLMEmbedder:
 def selected_dataset_keys(registry: dict[str, Any], requested: tuple[str, ...]) -> list[str]:
     """Return selected dataset keys with validation."""
     keys = list(requested) if requested else list(registry.keys())
-    missing = [key for key in keys if key not in registry]
-    if missing:
+    if missing := [key for key in keys if key not in registry]:
         available = ", ".join(sorted(registry.keys()))
         raise click.ClickException(f"Unknown dataset(s): {missing}. Available: {available}")
     return keys
@@ -125,12 +124,12 @@ def evaluate_dataset(
     return results
 
 
-def save_eval_outputs(results: list[EvalResult]) -> None:
+def save_eval_outputs(results: list[EvalResult]):
     """Save long and wide retrieval evaluation tables."""
-    save_results(results, csv_path=RESULTS_DIR / "retrieval_metrics.csv", md_path=IMAGES_DIR / "retrieval_comparison_table.md")
+    save_results(results, csv_path=RESULTS_DIR / "retrieval_metrics.csv", md_path=DOCS_DIR / "RETRIEVAL_COMPARE_TABLE.md")
 
     wide = results_to_wide_df(results)
-    wide_csv = IMAGES_DIR / "retrieval_comparison_table.csv"
+    wide_csv = DATA_DIR / "retrieval_comparison_table.csv"
     wide.to_csv(wide_csv)
     logger.info("Wrote wide-format comparative CSV: %s", wide_csv)
 
@@ -138,7 +137,7 @@ def save_eval_outputs(results: list[EvalResult]) -> None:
     print(wide.to_string(float_format=lambda value: f"{value:.4f}"))
 
 
-def run_from_args(args: EvalArgs) -> None:
+def run_from_args(args: EvalArgs):
     """Run BM25, dense, and hybrid retrieval evaluation from parsed arguments."""
     cfg = load_yaml(args.config)
     registry = load_registry(args.datasets_config)
@@ -147,7 +146,7 @@ def run_from_args(args: EvalArgs) -> None:
     weaviate = read_weaviate_settings(cfg)
     embedder = build_embedder(cfg)
 
-    ensure_dirs(RESULTS_DIR, IMAGES_DIR)
+    ensure_dirs(RESULTS_DIR, DOCS_DIR)
     all_results: list[EvalResult] = []
 
     with weaviate_client(host=weaviate.host, http_port=weaviate.http_port, grpc_port=weaviate.grpc_port) as client:
@@ -163,9 +162,7 @@ def run_from_args(args: EvalArgs) -> None:
 @click.option("--datasets-config", default="datasets.yaml")
 @click.option("--top-k", type=int, default=None, help="Override top-k from config.")
 @click.option("--alpha", type=float, default=None, help="Override hybrid alpha.")
-def main(
-        datasets: tuple[str, ...], config: str, datasets_config: str,
-        top_k: int | None, alpha: float | None) -> None:
+def main(datasets: tuple[str, ...], config: str, datasets_config: str, top_k: int | None, alpha: float | None):
     """Run BM25, dense, and hybrid retrieval evaluation."""
     args = parse_args(datasets, config, datasets_config, top_k, alpha)
     run_from_args(args)

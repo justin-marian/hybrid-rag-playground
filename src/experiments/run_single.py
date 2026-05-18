@@ -62,7 +62,7 @@ def truncate(text: str, max_chars: int) -> str:
     return snippet[:max_chars] + ("…" if len(snippet) > max_chars else "")
 
 
-def print_hits(title: str, hits: Any, max_chars: int = 180) -> None:
+def print_hits(title: str, hits: Any, max_chars: int = 180):
     """Pretty-print retrieval hits as a Rich table."""
     table = Table(title=title, show_lines=False)
     table.add_column("Rank", justify="right", style="cyan", width=4)
@@ -127,7 +127,7 @@ def run_demo(
     return pipeline.answer(query_text).answer
 
 
-def run_from_args(args: DemoArgs) -> None:
+def run_from_args(args: DemoArgs):
     """Run one query through BM25, dense, hybrid, and RAG from parsed arguments."""
     retrieval_cfg = load_yaml(args.retrieval_config)
     rag_cfg = load_yaml(args.rag_config)
@@ -160,7 +160,7 @@ def run_from_args(args: DemoArgs) -> None:
 def main(
         retrieval_config: str, rag_config: str, datasets_config: str,
         dataset: str | None, query_text: str | None, top_k: int,
-        alpha: float | None, model: str | None) -> None:
+        alpha: float | None, model: str | None):
     """Run one query through BM25, dense, hybrid, and RAG."""
     args = parse_args(retrieval_config, rag_config, datasets_config, dataset, query_text, top_k, alpha, model)
     run_from_args(args)
