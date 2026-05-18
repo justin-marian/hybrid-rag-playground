@@ -1,0 +1,4 @@
+retriever,recall@10,mrr,ndcg@10
+bm25,0.7703,0.6039,0.636
+hybrid,0.7703,0.6039,0.636
+dense,0.0,0.0,0.0

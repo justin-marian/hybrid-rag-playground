@@ -1,0 +1,4 @@
+retriever,dataset,num_queries,recall@10,ndcg@10,mrr
+bm25,scifact,300,0.7703,0.636,0.6039
+dense,scifact,300,0.0,0.0,0.0
+hybrid,scifact,300,0.7703,0.636,0.6039
