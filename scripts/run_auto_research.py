@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import load_dotenv
 
+load_dotenv()
 config_path = Path(os.environ.get("AUTO_RESEARCH_CONFIG", "../configs/auto_research.yml"))
 run_rag = os.environ.get("RUN_RAG", "false").lower() == "true"
 
@@ -19,7 +21,7 @@ if not config_path.exists():
 
 def read_yaml(path: Path) -> dict[str, Any]:
     """Read a YAML file as a dictionary."""
-    with path.open("r", encoding="utf-8") as handle:
+    with path.open("r", encoding="utf-8-sig") as handle:
         return yaml.safe_load(handle) or {}
 
 
@@ -88,7 +90,7 @@ def run_command(command: list[str], log_path: Path, stop_on_failure: bool) -> in
     print(f"\n$ {shlex.join(command)}")
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with log_path.open("w", encoding="utf-8") as log:
+    with log_path.open("w", encoding="utf-8-sig") as log:
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, text=True)
@@ -106,7 +108,7 @@ def run_command(command: list[str], log_path: Path, stop_on_failure: bool) -> in
     return return_code
 
 
-def main() -> None:
+def main():
     """Run all enabled stages from the auto research YAML plan."""
     cfg = read_yaml(config_path)
     defaults = cfg.get("defaults", {})
