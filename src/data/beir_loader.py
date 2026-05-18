@@ -9,6 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from beir import util as beir_util
+from beir.datasets.data_loader import GenericDataLoader
+
 from src.data.dataset_registry import DatasetSpec
 from src.utils.logging import get_logger
 from src.utils.paths import ensure_dirs
@@ -36,8 +39,6 @@ class BeirDataset:
 
 def download_dataset(spec: DatasetSpec) -> Path:
     """Download (if needed) the BEIR archive and return the extracted folder path."""
-    from beir import util as beir_util  # imported lazily to keep import cost low
-
     download_root = Path(spec.download_root)
     ensure_dirs(download_root)
 
@@ -53,16 +54,8 @@ def download_dataset(spec: DatasetSpec) -> Path:
 
 def load_beir(spec: DatasetSpec) -> BeirDataset:
     """Download (if needed) and load a BEIR dataset."""
-    from beir.datasets.data_loader import GenericDataLoader
-
     data_path = download_dataset(spec)
     logger.info("Loading BEIR dataset %s (split=%s) from %s", spec.name, spec.split, data_path)
     corpus, queries, qrels = GenericDataLoader(data_folder=str(data_path)).load(split=spec.split)
-    logger.info(
-        "Loaded %s: %d docs, %d queries, %d qrels",
-        spec.name,
-        len(corpus),
-        len(queries),
-        len(qrels),
-    )
+    logger.info("Loaded %s: %d docs, %d queries, %d qrels", spec.name, len(corpus), len(queries), len(qrels))
     return BeirDataset(spec=spec, corpus=corpus, queries=queries, qrels=qrels)

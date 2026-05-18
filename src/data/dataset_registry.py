@@ -34,14 +34,12 @@ def load_registry(config_path: str = "datasets.yaml") -> dict[str, DatasetSpec]:
     for key, entry in raw["datasets"].items():
         name = entry["name"]
         out[key] = DatasetSpec(
-            key=key,
-            name=name,
+            key=key, name=name,
             split=entry.get("split", "test"),
             description=entry.get("description", ""),
             expected_size=int(entry.get("expected_size", 0)),
             url=url_template.format(name=name),
-            download_root=str(resolve(download_root)),
-        )
+            download_root=str(resolve(download_root)))
     return out
 
 
