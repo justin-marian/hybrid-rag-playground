@@ -16,4 +16,4 @@ class BM25Retriever(Retriever):
         """Return top-k BM25 hits for a query."""
         result = self.collection.query.bm25(
             query=query, limit=top_k, return_metadata=MetadataQuery(score=True))
-        return self._objects_to_hits(result.objects)
+        return self.objects_to_hits(result.objects)

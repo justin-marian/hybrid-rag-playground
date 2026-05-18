@@ -15,7 +15,7 @@ class HybridRetriever(Retriever):
 
     name = "hybrid"
 
-    def __init__(self, client: Any, collection_name: str, embedder: MiniLMEmbedder, alpha: float = 0.5) -> None:
+    def __init__(self, client: Any, collection_name: str, embedder: MiniLMEmbedder, alpha: float = 0.5):
         super().__init__(client, collection_name)
         if not 0.0 <= alpha <= 1.0:
             raise ValueError("alpha must be in [0, 1]")
@@ -28,4 +28,4 @@ class HybridRetriever(Retriever):
             query=query, vector=self.embedder.encode_query(query).tolist(),
             alpha=self.alpha, limit=top_k,
             return_metadata=MetadataQuery(score=True, explain_score=False))
-        return self._objects_to_hits(result.objects)
+        return self.objects_to_hits(result.objects)

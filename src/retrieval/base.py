@@ -24,7 +24,7 @@ class Retriever(ABC):
 
     name: str = "base"
 
-    def __init__(self, client: Any, collection_name: str) -> None:
+    def __init__(self, client: Any, collection_name: str):
         self.client = client
         self.collection_name = collection_name
         self.collection = client.collections.get(collection_name)

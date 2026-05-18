@@ -15,7 +15,7 @@ class DenseRetriever(Retriever):
 
     name = "dense"
 
-    def __init__(self, client: Any, collection_name: str, embedder: MiniLMEmbedder) -> None:
+    def __init__(self, client: Any, collection_name: str, embedder: MiniLMEmbedder):
         super().__init__(client, collection_name)
         self.embedder = embedder
 
@@ -25,4 +25,4 @@ class DenseRetriever(Retriever):
         result = self.collection.query.near_vector(
             near_vector=qvec, limit=top_k,
             return_metadata=MetadataQuery(distance=True, score=True))
-        return self._objects_to_hits(result.objects)
+        return self.objects_to_hits(result.objects)
