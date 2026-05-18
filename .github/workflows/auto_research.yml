@@ -22,7 +22,7 @@ on:
     paths:
       - "src/**"
       - "configs/**"
-      - "scripts/run_auto_research.sh"
+      - "scripts/run_auto_research.py"
       - ".github/workflows/auto_research.yml"
       - "pyproject.toml"
 
@@ -36,8 +36,8 @@ jobs:
       weaviate:
         image: semitechnologies/weaviate:1.25.6
         ports:
-          - 8080:8080
-          - 50051:50051
+          - 8001:8001
+          - 15051:15051
         env:
           QUERY_DEFAULTS_LIMIT: 25
           AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
@@ -82,7 +82,7 @@ jobs:
         shell: bash
         run: |
           for i in {1..60}; do
-            if curl -fsS http://localhost:8080/v1/.well-known/ready; then
+            if curl -fsS http://localhost:8001/v1/.well-known/ready; then
               echo "Weaviate is ready."
               exit 0
             fi
@@ -97,8 +97,7 @@ jobs:
       - name: Run auto research plan
         shell: bash
         run: |
-          chmod +x scripts/run_auto_research.sh
-          scripts/run_auto_research.sh
+          python3 scripts/run_auto_research.py
 
       - name: Upload experiment artifacts
         uses: actions/upload-artifact@v4
