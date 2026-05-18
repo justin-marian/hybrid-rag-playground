@@ -15,7 +15,7 @@ content: this file is only a placeholder if it didn't already exist.**
 
 - Anonymous access is enabled in the docker-compose. Do **not** expose the
   container outside `localhost` without adding auth first.
-- gRPC must be reachable (port 50051): the v4 Python client uses gRPC for
+- gRPC must be reachable (port 15051): the v4 Python client uses gRPC for
   the batch insertion path; falling back to REST-only is much slower.
 - `client.collections.exists(name)` is the cheap way to check before creating.
 

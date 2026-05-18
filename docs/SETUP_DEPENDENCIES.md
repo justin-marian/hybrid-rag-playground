@@ -40,6 +40,6 @@ pre-commit install
 ```bash
 python -c "import beir, weaviate, sentence_transformers, ollama; print('ok')"
 docker compose -f docker/docker-compose.yml up -d
-curl -s http://localhost:8080/v1/.well-known/ready && echo " ✓ Weaviate ready"
-curl -s http://localhost:11434/api/tags     # Ollama should respond
+curl -s http://localhost:18080/v1/.well-known/ready && echo " ✓ Weaviate ready"  # Weaviate special REST port
+curl -s http://localhost:11434/api/tags     # Ollama should respond special REST port
 ```

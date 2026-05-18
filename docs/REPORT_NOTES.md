@@ -1,4 +1,4 @@
-# MDAD HW2 — Technical Report Notes
+# Technical Report Notes
 
 This file is a working scratchpad to assemble the final 3–4 page PDF report.
 It maps each report section to the artifacts produced by the code, so writing
@@ -18,7 +18,7 @@ Suggested talking points:
   (normalized embeddings).
 - Vector DB: Weaviate 1.27 in BYO-vectors mode, HNSW (default parameters), BM25
   on the `text` property (default `k1=1.2`, `b=0.75`). One collection per
-  dataset (`MDAD_HW2_Nfcorpus`, `MDAD_HW2_Scifact`, `MDAD_HW2_Fiqa`).
+  dataset (`Nfcorpus`, `Scifact`, `Fiqa`).
 - Retrievers: BM25 (`collection.query.bm25`), dense (`near_vector`), hybrid
   (`hybrid(alpha=0.5)`).
 - LLM: Ollama running `gemma2:2b` (default) or `llama3.2:3b`.
@@ -32,8 +32,8 @@ chunks → prompt → Ollama → cited answer.
 
 ## 2. Retrieval comparison table (Cerința 2)
 
-Insert the contents of `images/retrieval_comparison_table.md` here, or import
-`images/retrieval_comparison_table.csv` directly into the PDF as a table.
+Insert the contents of `docs/retrieval_comparison_table.md` here, or import
+`docs/retrieval_comparison_table.csv` directly into the PDF as a table.
 
 Source data: `data/results/retrieval_metrics.csv`.
 
@@ -57,7 +57,7 @@ you actually see and propose a plausible cause.
 
 ---
 
-## 3. Dataset chosen for RAG (Cerința 3)
+## 3. Dataset chosen for RAG
 
 Default choice: **SciFact**. Justification:
 
@@ -73,10 +73,10 @@ much more interesting), swap this section accordingly. Edit
 
 ---
 
-## 4. RAG manual evaluation (Cerința 3)
+## 4. RAG manual evaluation
 
 - Run `python -m src.experiments.run_rag_demo`.
-- Open `images/rag_demo.md`. Read the answer + the top-3 chunk IDs for each of
+- Open `docs/rag_demo.md`. Read the answer + the top-3 chunk IDs for each of
   the 10 queries.
 - Fill the `Notes` column with one of: `correct`, `partial`, `hallucination`.
 - The spec requires **at least one** `hallucination` case. Likely sources of
@@ -94,10 +94,10 @@ much more interesting), swap this section accordingly. Edit
 
 ---
 
-## 5. Calibration sweep (Cerința 4)
+## 5. Calibration sweep
 
 - Run `python -m src.experiments.run_sweep`.
-- Insert `images/sweep_ndcg10.png` into the report.
+- Insert `docs/{dataset}_/sweep_ndcg10.png` into the report.
 - The script prints the recommended configuration to stdout. Quote those
   numbers in the report and justify them in 2–3 sentences:
   - Optimal alpha is usually somewhere in 0.25–0.75 for these datasets; α=0 or
@@ -153,8 +153,8 @@ limit.
 Include:
 - `src/`, `configs/`, `docker/`, `images/`, `docs/`, `pdfs/`
 - `pyproject.toml`, `setup.py`, `README.md`, `.gitignore`
-- Plots: `images/retrieval_comparison_table.*`, `images/sweep_ndcg10.png`
-- `images/rag_demo.md` (with the manual annotations filled in)
+- Plots: `docs/{dataset}_/retrieval_comparison_table.*`, `images/{dataset}_/sweep_ndcg10.png`
+- `docs/rag_demo.md` (with the manual annotations filled in)
 
 Exclude (must NOT be in the archive):
 - `data/beir/` (datasets)
