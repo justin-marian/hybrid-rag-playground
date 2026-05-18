@@ -1,4 +1,4 @@
-# MDAD HW2 — Web UI
+# Web UI
 
 Tiny single-page app built with **Vite + React + TypeScript**, served by **Bun**,
 that talks to the FastAPI backend (`app.py` in the repo root).
@@ -27,7 +27,7 @@ bun run dev
 ```
 
 Open <http://localhost:5173>. The dev server proxies `/api/*` to
-`http://localhost:8000` (configurable via `web/.env`).
+`http://localhost:8001` (configurable via `web/.env`).
 
 ## Type-check & build
 
