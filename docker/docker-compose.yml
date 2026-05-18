@@ -8,8 +8,8 @@ services:
     container_name: container_weaviate
     restart: unless-stopped
     ports:
-      - "8080:8080"   # REST / GraphQL
-      - "50051:50051" # gRPC (used by the v4 Python client)
+      - "18001:18080"    # REST / GraphQL on host port 18001
+      - "15051:15051"   # gRPC on host port 15051
     environment:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
@@ -17,13 +17,12 @@ services:
       DEFAULT_VECTORIZER_MODULE: "none"
       ENABLE_MODULES: ""
       CLUSTER_HOSTNAME: "jpm"
-      # Increase for bigger imports (FiQA dataset is the largest):
-      QUERY_MAXIMUM_RESULTS: 10000
+      QUERY_MAXIMUM_RESULTS: 10000  # there are not datasets with more than <= 10k docs
       DISK_USE_READONLY_PERCENTAGE: 95
     volumes:
       - weaviate_data:/var/lib/weaviate
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:18080/v1/.well-known/ready"]
       interval: 10s
       timeout: 5s
       retries: 12
