@@ -22,7 +22,7 @@ class RetrievedHit:
 class Retriever(ABC):
     """Abstract retriever over one Weaviate collection."""
 
-    name: str = "base"
+    name = "base"
 
     def __init__(self, client: Any, collection_name: str):
         self.client = client
@@ -30,7 +30,7 @@ class Retriever(ABC):
         self.collection = client.collections.get(collection_name)
 
     @abstractmethod
-    def search(self, query: str, top_k: int = 10) -> list[RetrievedHit]:
+    def search(self, query: str, top_k: int) -> list[RetrievedHit]:
         """Return up to ``top_k`` hits sorted by descending score."""
         raise NotImplementedError
 

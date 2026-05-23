@@ -12,8 +12,10 @@ class BM25Retriever(Retriever):
 
     name = "bm25"
 
-    def search(self, query: str, top_k: int = 10) -> list[RetrievedHit]:
+    def search(self, query: str, top_k: int) -> list[RetrievedHit]:
         """Return top-k BM25 hits for a query."""
         result = self.collection.query.bm25(
-            query=query, limit=top_k, return_metadata=MetadataQuery(score=True))
+            query=query, limit=top_k, 
+            return_metadata=MetadataQuery(score=True, explain_score=True))
+
         return self.objects_to_hits(result.objects)

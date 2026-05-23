@@ -9,6 +9,8 @@ from weaviate.classes.query import MetadataQuery
 from src.embeddings.minilm_embedder import MiniLMEmbedder
 from src.retrieval.base import RetrievedHit, Retriever
 
+TARGET_VECTOR = "default"
+
 
 class DenseRetriever(Retriever):
     """Retriever that searches Weaviate with MiniLM query embeddings."""
@@ -19,10 +21,14 @@ class DenseRetriever(Retriever):
         super().__init__(client, collection_name)
         self.embedder = embedder
 
-    def search(self, query: str, top_k: int = 10) -> list[RetrievedHit]:
+    def search(self, query: str, top_k: int) -> list[RetrievedHit]:
         """Return the top-k nearest chunks for the embedded query."""
         qvec = self.embedder.encode_query(query).tolist()
         result = self.collection.query.near_vector(
-            near_vector=qvec, limit=top_k,
-            return_metadata=MetadataQuery(distance=True, score=True))
-        return self.objects_to_hits(result.objects)
+            near_vector=qvec, target_vector=TARGET_VECTOR,
+            limit=top_k, return_metadata=MetadataQuery(distance=True))
+
+        if hits := self.objects_to_hits(result.objects):
+            return hits
+        else:
+            raise RuntimeError(f"Dense retrieval returned 0 hits from {self.collection_name} with target_vector={TARGET_VECTOR!r}.")
