@@ -5,13 +5,17 @@ embedding:
   batch_size: 64
   normalize: true     # normalize for cosine similarity
   cache_dir: "data/cache/embeddings"
+  max_seq_length: 512  # MiniLM accepts at most 512 transformer tokens
 
 chunking:
   # Fixed-size chunking with 10% overlap (as required by the spec).
   strategy: "fixed"
-  chunk_size_tokens: 256
+  chunk_size_tokens: 192
+  min_chunk_tokens: 80
+  full_doc_thr_tokens: 192
   overlap_ratio: 0.10
-  # We approximate tokens with the MiniLM tokenizer; falls back to word-level if unavailable.
+  preserve_title: true
+  # Approximate tokens with the MiniLM tokenizer; falls back to word-level if unavailable.
   tokenizer: "sentence-transformers/all-MiniLM-L6-v2"
 
 weaviate:
@@ -23,8 +27,12 @@ weaviate:
   # Distance is cosine because we normalize embeddings; Weaviate default index is HNSW.
   distance: "cosine"
   batch_size: 200
+  # Name of the BYO vector stored in Weaviate v4.
+  vector_name: "default"
 
 retrieval:
   top_k: 10
   # Default alpha for Weaviate's built-in hybrid search: 0.5 (equal weight).
   hybrid_alpha: 0.5
+  # Target named vector used by dense and hybrid retrieval.
+  target_vector: "default"
