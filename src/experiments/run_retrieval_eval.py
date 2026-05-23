@@ -8,7 +8,7 @@ from typing import Any
 import click
 
 from src.data.beir_loader import load_beir
-from src.data.dataset_registry import load_registry
+from src.data.dataset_registry import load_datasets
 from src.embeddings.minilm_embedder import MiniLMEmbedder
 from src.evaluation.evaluator import EvalResult, evaluate_retriever
 from src.evaluation.tables import results_to_wide_df, save_results
@@ -88,11 +88,11 @@ def build_embedder(cfg: dict[str, Any]) -> MiniLMEmbedder:
         normalize=bool(values["normalize"]), cache_dir=values["cache_dir"])
 
 
-def selected_dataset_keys(registry: dict[str, Any], requested: tuple[str, ...]) -> list[str]:
+def selected_dataset_keys(datasets: dict[str, Any], requested: tuple[str, ...]) -> list[str]:
     """Return selected dataset keys with validation."""
-    keys = list(requested) if requested else list(registry.keys())
-    if missing := [key for key in keys if key not in registry]:
-        available = ", ".join(sorted(registry.keys()))
+    keys = list(requested) if requested else list(datasets.keys())
+    if missing := [key for key in keys if key not in datasets]:
+        available = ", ".join(sorted(datasets.keys()))
         raise click.ClickException(f"Unknown dataset(s): {missing}. Available: {available}")
     return keys
 
@@ -140,8 +140,8 @@ def save_eval_outputs(results: list[EvalResult]):
 def run_from_args(args: EvalArgs):
     """Run BM25, dense, and hybrid retrieval evaluation from parsed arguments."""
     cfg = load_yaml(args.config)
-    registry = load_registry(args.datasets_config)
-    keys = selected_dataset_keys(registry, args.datasets)
+    datasets = load_datasets(args.datasets_config)
+    keys = selected_dataset_keys(datasets, args.datasets)
     settings = read_retrieval_settings(cfg, args)
     weaviate = read_weaviate_settings(cfg)
     embedder = build_embedder(cfg)
@@ -151,7 +151,7 @@ def run_from_args(args: EvalArgs):
 
     with weaviate_client(host=weaviate.host, http_port=weaviate.http_port, grpc_port=weaviate.grpc_port) as client:
         for key in keys:
-            all_results.extend(evaluate_dataset(client, key, registry[key], settings, embedder))
+            all_results.extend(evaluate_dataset(client, key, datasets[key], settings, embedder))
 
     save_eval_outputs(all_results)
 

@@ -32,6 +32,7 @@ logger = get_logger(__name__)
 TestingAxis = Literal["alpha", "top_k", "chunk_size"]
 SWEEP_AXES: tuple[TestingAxis, ...] = ("alpha", "top_k", "chunk_size")
 
+
 @dataclass(frozen=True)
 class TestingConfig:
     """Default configuration shared by axis-aligned test_calibration runs."""

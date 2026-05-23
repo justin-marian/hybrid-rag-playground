@@ -84,15 +84,16 @@ def render_markdown_summary(answers: list[dict[str, Any]], md_path: Path):
         llm_answer = truncate_cell(str(answer.get("answer") or ""), 280)
         lines.append(f"| {index} | {query} | {chunk_ids} | {llm_answer} |   |")
 
-    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8-sig")
+    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     logger.info("Wrote RAG demo Markdown summary: %s", md_path)
 
 
 def read_demo_settings(
-        retrieval_config: str, rag_config: str,
-        dataset: str | None, retriever: str | None,
-        top_k: int | None, alpha: float | None,
-        model: str | None, num_queries: int | None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    retrieval_config: str, rag_config: str,
+    dataset: str | None, retriever: str | None,
+    top_k: int | None, alpha: float | None,
+    model: str | None, num_queries: int | None
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     """Read configs and resolve CLI overrides into deterministic demo settings."""
     retrieval_cfg = load_yaml(retrieval_config)
     rag_cfg = load_yaml(rag_config)
@@ -114,12 +115,12 @@ def build_embedder(retrieval_cfg: dict[str, Any]) -> MiniLMEmbedder:
         normalize=embedding_cfg["normalize"], cache_dir=embedding_cfg["cache_dir"])
 
 
-def build_llm(rag_cfg: dict[str, Any], model_name: str) -> OllamaClient:
-    """Build and validate the configured Ollama client."""
+def build_llm_client(rag_cfg: dict[str, Any]) -> OllamaClient:
+    """Build the Ollama client from the RAG config."""
     llm_cfg = rag_cfg["llm"]
-    llm = OllamaClient(model=model_name, host=llm_cfg["host"], options=llm_cfg.get("options", {}))
-    llm.ensure_model()
-    return llm
+    if llm_cfg.get("provider") != "ollama":
+        raise ValueError(f"Unsupported LLM provider: {llm_cfg.get('provider')}")
+    return OllamaClient(llm_cfg["model"], llm_cfg["host"], llm_cfg["options"])
 
 
 def print_answer(query_id: str, query_text: str, answer: str):
@@ -164,7 +165,7 @@ def main(
     spec = get_spec(settings["dataset_key"], datasets_config)
     collection = collection_name(retrieval_cfg["weaviate"]["collection_prefix"], spec.key)
     embedder = build_embedder(retrieval_cfg)
-    llm = build_llm(rag_cfg, settings["model_name"])
+    llm = build_llm_client(rag_cfg)
 
     results_dir = resolve(rag_cfg["demo"]["results_dir"])
     ensure_dirs(results_dir, RESULTS_DIR, IMAGES_DIR)
@@ -173,8 +174,7 @@ def main(
     queries = pick_queries(beir, settings["num_queries"])
     logger.info(
         "Running RAG demo: dataset=%s retriever=%s top_k=%d model=%s queries=%d",
-        spec.name, settings["retriever_name"], settings["top_k"],
-        settings["model_name"], len(queries))
+        spec.name, settings["retriever_name"], settings["top_k"], settings["model_name"], len(queries))
 
     answers: list[dict[str, Any]] = []
     weaviate_cfg = retrieval_cfg["weaviate"]

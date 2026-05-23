@@ -8,7 +8,7 @@ import click
 
 from src.chunking.adaptive_chunker import AdaptiveDocChunker
 from src.data.beir_loader import load_beir
-from src.data.dataset_registry import load_registry
+from src.data.dataset_registry import load_datasets
 from src.embeddings.minilm_embedder import MiniLMEmbedder
 from src.utils.io import load_yaml
 from src.utils.logging import get_logger
@@ -20,13 +20,12 @@ logger = get_logger(__name__)
 
 
 def read_defaults(
-        config: str, 
-        datasets_config: str, datasets: tuple[str, ...],
-        chunk_size: int | None, overlap_ratio: float | None
-    ) -> tuple[dict[str, Any], dict[str, Any], list[str], int, float]:
+    config: str, datasets_config: str,
+    datasets: tuple[str, ...], chunk_size: int | None, overlap_ratio: float | None
+) -> tuple[dict[str, Any], dict[str, Any], list[str], int, float]:
     """Read config files and resolve CLI overrides."""
     cfg = load_yaml(config)
-    registry = load_registry(datasets_config)
+    registry = load_datasets(datasets_config)
 
     selected_keys = list(datasets) if datasets else list(registry.keys())
     chunk_size_tokens = chunk_size or cfg["chunking"]["chunk_size_tokens"]
@@ -35,23 +34,29 @@ def read_defaults(
     return cfg, registry, selected_keys, chunk_size_tokens, overlap
 
 
-def build_chunker(
-        cfg: dict[str, Any], chunk_size_tokens: int,
-        overlap_ratio: float) -> AdaptiveDocChunker:
+def build_chunker(cfg: dict[str, Any], chunk_size_tokens: int, overlap_ratio: float) -> AdaptiveDocChunker:
     """Build the adaptive chunker."""
-    return AdaptiveDocChunker(chunk_size_tokens=chunk_size_tokens, overlap_ratio=overlap_ratio, tokenizer_name=cfg["chunking"].get("tokenizer"))
+    chk_cfg = cfg["chunking"]
+
+    return AdaptiveDocChunker(
+        chunk_size_tokens=chunk_size_tokens, min_chunk_tokens=chk_cfg["min_chunk_tokens"],
+        full_doc_thr_tokens=chk_cfg["full_doc_thr_tokens"], overlap_ratio=overlap_ratio,
+        preserve_title=chk_cfg["preserve_title"], tokenizer_name=chk_cfg["tokenizer"])
 
 
 def build_embedder(cfg: dict[str, Any]) -> MiniLMEmbedder:
     """Build the sentence embedder."""
+    emb_cfg = cfg["embedding"]
+
     return MiniLMEmbedder(
-        model_name=cfg["embedding"]["model_name"], batch_size=cfg["embedding"]["batch_size"],
-        normalize=cfg["embedding"]["normalize"], cache_dir=cfg["embedding"]["cache_dir"])
+        model_name=emb_cfg["model_name"], batch_size=emb_cfg["batch_size"],
+        max_seq_length=emb_cfg["max_seq_length"], normalize=emb_cfg["normalize"], cache_dir=emb_cfg["cache_dir"])
 
 
 def index_dataset(client: Any, spec: Any, cfg: dict[str, Any], chunker: AdaptiveDocChunker, embedder: MiniLMEmbedder, recreate: bool):
     """Index one BEIR dataset into Weaviate."""
     weaviate_cfg = cfg["weaviate"]
+    vector_name = weaviate_cfg["vector_name"]
     coll_name = collection_name(weaviate_cfg["collection_prefix"], spec.key)
 
     logger.info(
@@ -59,8 +64,8 @@ def index_dataset(client: Any, spec: Any, cfg: dict[str, Any], chunker: Adaptive
         spec.name, coll_name, chunker.chunk_size_tokens, chunker.overlap_ratio)
 
     ensure_collection(
-        client, coll_name,
-        distance=weaviate_cfg["distance"], recreate=recreate)
+        client, coll_name, vector_name=vector_name,
+        recreate=recreate, distance=weaviate_cfg["distance"])
 
     beir = load_beir(spec)
     chunks = list(chunker.chunk_corpus(beir.corpus, dataset=spec.name))
@@ -68,7 +73,7 @@ def index_dataset(client: Any, spec: Any, cfg: dict[str, Any], chunker: Adaptive
 
     inserted = index_chunks(
         client=client, collection_name=coll_name, chunks=chunks,
-        embedder=embedder, batch_size=weaviate_cfg["batch_size"])
+        embedder=embedder, vector_name=vector_name, batch_size=weaviate_cfg["batch_size"])
 
     final_size = collection_size(client, coll_name)
     logger.info("Indexed %d chunks into %s; collection now holds %d objects.", inserted, coll_name, final_size)
@@ -83,13 +88,13 @@ def index_dataset(client: Any, spec: Any, cfg: dict[str, Any], chunker: Adaptive
 @click.option("--overlap-ratio", type=float, default=None, help="Override chunk overlap ratio.")
 def main(datasets: tuple[str, ...], config: str, datasets_config: str, recreate: bool, chunk_size: int | None, overlap_ratio: float | None):
     """Index BEIR datasets into Weaviate using external vectors."""
-    cfg, registry, selected_keys, chunk_size_tokens, overlap = read_defaults(config, datasets_config, datasets, chunk_size, overlap_ratio)
-    chunker = build_chunker(cfg, chunk_size_tokens, overlap)
-    embedder = build_embedder(cfg)
+    retrieval_cfg, datasets_cfg, selected_keys, chunk_size_tokens, overlap = read_defaults(config, datasets_config, datasets, chunk_size, overlap_ratio)
+    chunker = build_chunker(retrieval_cfg, chunk_size_tokens, overlap)
+    embedder = build_embedder(retrieval_cfg)
 
-    with weaviate_client(host=cfg["weaviate"]["host"],  http_port=cfg["weaviate"]["http_port"], grpc_port=cfg["weaviate"]["grpc_port"]) as client:
+    with weaviate_client(host=retrieval_cfg["weaviate"]["host"],  http_port=retrieval_cfg["weaviate"]["http_port"], grpc_port=retrieval_cfg["weaviate"]["grpc_port"]) as client:
         for key in selected_keys:
-            index_dataset(client, registry[key], cfg, chunker, embedder, recreate)
+            index_dataset(client, datasets_cfg[key], retrieval_cfg, chunker, embedder, recreate)
 
 
 if __name__ == "__main__":
