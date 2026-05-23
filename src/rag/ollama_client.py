@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -18,7 +19,7 @@ ChatMessage = dict[str, str]
 class OllamaClient:
     """Stateful client bound to one Ollama model and host."""
 
-    model: str = "gemma2:2b"
+    model: str
     host: str = "http://localhost:11434"
     options: dict[str, Any] = field(default_factory=dict)
     client: ollama.Client = field(init=False, repr=False)
@@ -47,10 +48,13 @@ class OllamaClient:
 
     def generate(self, prompt: str, system: str | None = None) -> str:
         """Run a single-turn completion and return the assistant content."""
+        start = time.perf_counter()
         logger.debug("Calling Ollama model=%s host=%s", self.model, self.host)
         response = self.client.chat(
             model=self.model, messages=self.prompt_messages(prompt, system),
             options=self.options or None)
+        elapsed = time.perf_counter() - start
+        logger.info("Ollama generation completed in %.2fs", elapsed)
         return self.prompt_message_content(response)
 
     def ensure_model(self):

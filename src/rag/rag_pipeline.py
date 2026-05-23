@@ -28,12 +28,13 @@ class RagAnswer:
         return asdict(self)
 
 
+@dataclass
 class RagPipeline:
     """Compose a retriever and an Ollama client into one answer call."""
 
     def __init__(
         self, retriever: Retriever, llm: OllamaClient, prompt_template: str,
-        dataset_name: str, top_k: int = 10, max_chunk_chars: int = 1200):
+        dataset_name: str, top_k: int, max_chunk_chars: int = 1200):
         self.retriever = retriever
         self.llm = llm
         self.prompt_template = prompt_template

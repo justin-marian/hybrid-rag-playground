@@ -19,7 +19,7 @@ def load_prompt_template(path: str | Path) -> str:
     prompt_path = resolve(path)
     if not prompt_path.exists():
         raise FileNotFoundError(f"Prompt template not found: {prompt_path}")
-    return prompt_path.read_text(encoding="utf-8-sig")
+    return prompt_path.read_text(encoding="utf-8")
 
 
 def format_context_block(hits: list[RetrievedHit], dataset_name: str, max_chunk_chars: int = 1200) -> str:
