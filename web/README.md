@@ -27,7 +27,7 @@ bun run dev
 ```
 
 Open <http://localhost:5173>. The dev server proxies `/api/*` to
-`http://localhost:8001` (configurable via `web/.env`).
+`http://localhost:8080` (configurable via `web/.env`).
 
 ## Type-check & build
 

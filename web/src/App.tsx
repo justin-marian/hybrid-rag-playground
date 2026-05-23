@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   api,
   type DatasetInfo,
-  type RagRequest,
+  type RetrieveResponse,
   type RagResponse,
-  type RetrieveRequest,
-  type RetrieveResponse
+  type RetrieverName,
 } from "./api";
 import { Controls, type ControlsState } from "./components/Controls";
 import { Header } from "./components/Header";
@@ -14,158 +13,187 @@ import { HitsList } from "./components/HitsList";
 import { QueryBar } from "./components/QueryBar";
 import { RagAnswerPanel } from "./components/RagAnswerPanel";
 
-const DEFAULT_CONTROLS: ControlsState = {
+const DEFAULT_STATE: ControlsState = {
   dataset: "scifact",
   retriever: "hybrid",
   topK: 5,
   alpha: 0.5,
-  mode: "rag"
+  mode: "retrieve",
 };
 
-function alphaValue(controls: ControlsState): number | null {
-  return controls.retriever === "hybrid" ? controls.alpha : null;
-}
-
-function buildRetrieveRequest(query: string, controls: ControlsState): RetrieveRequest {
-  return {
-    query,
-    dataset: controls.dataset,
-    retriever: controls.retriever,
-    top_k: controls.topK,
-    alpha: alphaValue(controls)
-  };
-}
-
-function buildRagRequest(query: string, controls: ControlsState): RagRequest {
-  return buildRetrieveRequest(query, controls);
-}
-
-function loadingText(mode: ControlsState["mode"]): string {
-  return mode === "rag" ? "Running retrieval and generating answer with Ollama…" : "Searching…";
-}
-
-function submitButtonLabel(mode: ControlsState["mode"]): string {
-  return mode === "rag" ? "Ask" : "Retrieve";
-}
-
-function RetrievalPanel({ result }: { result: RetrieveResponse }) {
+function ErrorBanner({ message }: { message: string }) {
   return (
-    <section className="results">
-      <div className="results__meta">
-        <span>
-          retriever: <code>{result.retriever}</code>
-        </span>
-        {result.alpha !== null && (
-          <span>
-            α: <code>{result.alpha.toFixed(2)}</code>
-          </span>
-        )}
-        <span>
-          top-k: <code>{result.top_k}</code>
-        </span>
-        <span>
-          hits: <code>{result.hits.length}</code>
-        </span>
-      </div>
-
-      <HitsList hits={result.hits} />
-    </section>
+    <div className="banner banner--error" role="alert">
+      <svg
+        className="banner__icon"
+        viewBox="0 0 20 20"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M10 6.5V10.5M10 13.5H10.005M2.5 16.5H17.5L10 3.5L2.5 16.5Z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span>{message}</span>
+    </div>
   );
 }
 
-function Footer() {
+function LoadingPanel({ label }: { label: string }) {
   return (
-    <footer className="footer">
-      <a href="/docs" target="_blank" rel="noreferrer">
-        Open API docs
-      </a>
-    </footer>
+    <div className="loading" role="status" aria-live="polite">
+      <span className="loading__spinner" aria-hidden="true" />
+      <span className="loading__text">{label}</span>
+    </div>
   );
 }
 
-function App() {
+export default function App() {
   const [datasets, setDatasets] = useState<DatasetInfo[]>([]);
-  const [controls, setControls] = useState<ControlsState>(DEFAULT_CONTROLS);
-  const [initialQuery, setInitialQuery] = useState("");
+  const [controls, setControls] = useState<ControlsState>(DEFAULT_STATE);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retrieveResult, setRetrieveResult] = useState<RetrieveResponse | null>(null);
-  const [ragResult, setRagResult] = useState<RagResponse | null>(null);
-  const [bootError, setBootError] = useState<string | null>(null);
+  const [retrieval, setRetrieval] = useState<RetrieveResponse | null>(null);
+  const [rag, setRag] = useState<RagResponse | null>(null);
 
+  // Bootstrap datasets on mount
   useEffect(() => {
-    // sourcery skip: avoid-function-declarations-in-blocks
+    let cancelled = false;
+
     async function bootstrap() {
       try {
-        const [config, datasetResponse] = await Promise.all([api.config(), api.datasets()]);
+        const list = await api.datasets();
+        const safeList = Array.isArray(list) ? list : [];
+        if (cancelled) return;
 
-        setDatasets(datasetResponse.datasets);
-        setControls((previous) => ({
-          ...previous,
-          dataset: config.default_dataset,
-          retriever: config.default_retriever,
-          topK: config.default_top_k,
-          alpha: config.default_alpha
-        }));
+        setDatasets(safeList);
+        setControls((prev) => {
+          const exists = safeList.some((dataset) => dataset.key === prev.dataset);
+
+          return {
+            ...prev,
+            dataset: exists ? prev.dataset : safeList[0]?.key ?? ""
+          };
+        });
       } catch (err) {
-        setBootError((err as Error).message);
+        if (cancelled) return;
+        setError((err as Error).message);
       }
     }
 
     void bootstrap();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const runQuery = useCallback(
-    async (query: string) => {
-      setLoading(true);
-      setError(null);
-      setRetrieveResult(null);
-      setRagResult(null);
-      setInitialQuery(query);
+  async function handleSubmit(q: string) {
+    setQuery(q);
+    setLoading(true);
+    setError(null);
+    setRetrieval(null);
+    setRag(null);
 
-      try {
-        if (controls.mode === "retrieve") {
-          setRetrieveResult(await api.retrieve(buildRetrieveRequest(query, controls)));
-          return;
-        }
+    if (!controls.dataset) {
+      setLoading(false);
+      setError("No dataset is selected. Wait for datasets to load, then try again.");
+      return;
+    }
 
-        setRagResult(await api.rag(buildRagRequest(query, controls)));
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
+    try {
+      if (controls.mode === "retrieve") {
+        const res = await api.retrieve({
+          dataset: controls.dataset,
+          query: q,
+          retriever: controls.retriever as RetrieverName,
+          top_k: controls.topK,
+          alpha: controls.retriever === "hybrid" ? controls.alpha : null,
+        });
+        setRetrieval(res);
+      } else {
+        const res = await api.rag({
+          dataset: controls.dataset,
+          query: q,
+          retriever: controls.retriever as RetrieverName,
+          top_k: controls.topK,
+          alpha: controls.retriever === "hybrid" ? controls.alpha : null,
+        });
+        setRag(res);
       }
-    },
-    [controls]
-  );
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const buttonLabel = controls.mode === "generate" ? "Generate" : "Retrieve";
+  const loadingLabel = controls.mode === "generate" ? "Generating answer. This may take a moment with local Ollama models…" : "Retrieving top chunks…";
 
   return (
     <div className="page">
       <Header />
 
-      {bootError && (
-        <div className="banner banner--error">
-          Could not load API config: {bootError}. Is <code>uvicorn app:app</code> running?
-        </div>
-      )}
-
-      <Controls datasets={datasets} state={controls} onChange={setControls} disabled={loading} />
-
-      <QueryBar
-        initialQuery={initialQuery}
-        loading={loading}
-        buttonLabel={submitButtonLabel(controls.mode)}
-        onSubmit={runQuery}
+      <Controls
+        datasets={datasets}
+        state={controls}
+        onChange={setControls}
+        disabled={loading}
       />
 
-      {error && <div className="banner banner--error">Error: {error}</div>}
-      {loading && <div className="loading">{loadingText(controls.mode)}</div>}
-      {retrieveResult && <RetrievalPanel result={retrieveResult} />}
-      {ragResult && <RagAnswerPanel response={ragResult} />}
+      <QueryBar
+        initialQuery={query}
+        loading={loading}
+        buttonLabel={buttonLabel}
+        onSubmit={handleSubmit}
+      />
 
-      <Footer />
+      {error && <ErrorBanner message={error} />}
+      {loading && <LoadingPanel label={loadingLabel} />}
+
+      {retrieval && !loading && (
+        <section className="results">
+          <div className="results__meta">
+            <span>
+              retriever: <code>{retrieval.retriever}</code>
+            </span>
+            {retrieval.alpha !== null && (
+              <span>
+                alpha: <code>{retrieval.alpha.toFixed(2)}</code>
+              </span>
+            )}
+            <span>
+              top-k: <code>{retrieval.top_k}</code>
+            </span>
+            <span>
+              hits: <code>{retrieval.hits.length}</code>
+            </span>
+          </div>
+          <HitsList hits={retrieval.hits} />
+        </section>
+      )}
+
+      {rag && !loading && <RagAnswerPanel response={rag} />}
+
+      <footer className="footer">
+        <span className="footer__left">
+          Hybrid RAG · Local AI Search
+        </span>
+        <span className="footer__right">
+          <span className="footer__hint">
+            <kbd>⌘ Enter</kbd> / <kbd>Ctrl Enter</kbd>: Run query
+          </span>
+          <a href="http://localhost:5173/docs" target="_blank" rel="noreferrer">
+            API docs ↗
+          </a>
+        </span>
+      </footer>
     </div>
   );
 }
-
-export default App;
