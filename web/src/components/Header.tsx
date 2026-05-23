@@ -19,10 +19,20 @@ function HealthDetail({ health }: { health: HealthResponse | null }) {
     return null;
   }
 
+  const weaviateStatus = health.weaviate_ready ? "Ready" : "Offline";
+  const ollamaStatus = health.llm_reachable ? "Ready" : "Offline";
+
   return (
     <span className="pill__detail">
-      wv:{health.weaviate_ready ? "✓" : "✗"} · ol:
-      {health.ollama_reachable ? "✓" : "✗"}
+      Weaviate: {weaviateStatus} | Ollama: {ollamaStatus}
+    </span>
+  );
+}
+
+function LogoMark() {
+  return (
+    <span className="header__logo" aria-hidden="true">
+      <img src="/icons/ollama-tool.png" alt="" draggable={false} />
     </span>
   );
 }
@@ -34,6 +44,7 @@ export function Header() {
   useEffect(() => {
     let cancelled = false;
 
+    // comment:avoid-function-declarations-in-blocks
     async function pollHealth() {
       try {
         const response = await api.health();
@@ -68,15 +79,31 @@ export function Header() {
 
   return (
     <header className="header">
-      <div className="header__title">
-        <h1>Hybrid RAG Pipeline</h1>
-        <span className="header__subtitle">BEIR · Weaviate · Ollama · Local LLM</span>
+      <div className="header__left">
+        <LogoMark />
+        <div className="header__title">
+          <h1>Hybrid RAG Pipeline</h1>
+          <span className="header__subtitle">
+            BEIR · Weaviate · Ollama Local
+          </span>
+        </div>
       </div>
 
-      <div className={`pill pill--${status}`} title={error ?? health?.detail ?? undefined}>
-        <span className="pill__dot" />
-        <span>API: {status}</span>
-        <HealthDetail health={health} />
+      <div className="header__right">
+        <span className="badge" aria-hidden="true">
+          <span className="badge__icon" />
+          Experimenting RAG Setups
+        </span>
+        <div
+          className={`pill pill--${status}`}
+          role="status"
+          aria-live="polite"
+          title={error ?? health?.detail ?? undefined}
+        >
+          <span className="pill__dot" />
+          <span className="pill__label">API: {status}</span>
+          <HealthDetail health={health} />
+        </div>
       </div>
     </header>
   );

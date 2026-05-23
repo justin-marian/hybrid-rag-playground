@@ -1,6 +1,7 @@
 import type { DatasetInfo, RetrieverName } from "../api";
+import { SelectField } from "./SelectField";
 
-export type Mode = "retrieve" | "rag";
+export type Mode = "retrieve" | "generate";
 
 export interface ControlsState {
   dataset: string;
@@ -20,12 +21,12 @@ interface Props {
 const RETRIEVERS: { value: RetrieverName; label: string }[] = [
   { value: "bm25", label: "BM25" },
   { value: "dense", label: "Dense" },
-  { value: "hybrid", label: "Hybrid" }
+  { value: "hybrid", label: "Hybrid" },
 ];
 
 const MODES: { value: Mode; label: string }[] = [
   { value: "retrieve", label: "Retrieve" },
-  { value: "rag", label: "RAG" }
+  { value: "generate", label: "Generate" },
 ];
 
 function datasetLabel(dataset: DatasetInfo): string {
@@ -41,44 +42,51 @@ function buttonClass(isActive: boolean): string {
 }
 
 export function Controls({ datasets, state, onChange, disabled }: Props) {
+  const safeDatasets = Array.isArray(datasets) ? datasets : [];
+  const hasDatasets = safeDatasets.length > 0;
+
+  const datasetOptions = hasDatasets
+    ? safeDatasets.map((dataset) => ({
+        value: dataset.key,
+        label: datasetLabel(dataset),
+      }))
+    : [{ value: "", label: "No datasets available" }];
+
   const update = <K extends keyof ControlsState>(key: K, value: ControlsState[K]) => {
     onChange({ ...state, [key]: value });
   };
 
+  const alphaMuted = state.retriever !== "hybrid";
+
   return (
-    <section className="controls">
+    <section className="controls" aria-label="Pipeline configuration">
       <label className="field">
         <span>Dataset</span>
-        <select
-          value={state.dataset}
-          onChange={(event) => update("dataset", event.target.value)}
-          disabled={disabled || datasets.length === 0}
-        >
-          {datasets.map((dataset) => (
-            <option key={dataset.key} value={dataset.key}>
-              {datasetLabel(dataset)}
-            </option>
-          ))}
-        </select>
+        <SelectField
+          value={hasDatasets ? state.dataset : ""}
+          options={datasetOptions}
+          onChange={(value) => update("dataset", value)}
+          disabled={disabled || !hasDatasets}
+          ariaLabel="Dataset"
+        />
       </label>
 
       <label className="field">
         <span>Retriever</span>
-        <select
+        <SelectField
           value={state.retriever}
-          onChange={(event) => update("retriever", event.target.value as RetrieverName)}
+          options={RETRIEVERS}
+          onChange={(value) => update("retriever", value as RetrieverName)}
           disabled={disabled}
-        >
-          {RETRIEVERS.map((retriever) => (
-            <option key={retriever.value} value={retriever.value}>
-              {retriever.label}
-            </option>
-          ))}
-        </select>
+          ariaLabel="Retriever"
+        />
       </label>
 
-      <label className="field">
-        <span>Top-k: {state.topK}</span>
+      <label className="field field--range">
+        <span>
+          Top-k
+          <span className="field__value">{state.topK}</span>
+        </span>
         <input
           type="range"
           min={1}
@@ -87,11 +95,15 @@ export function Controls({ datasets, state, onChange, disabled }: Props) {
           value={state.topK}
           onChange={(event) => update("topK", Number(event.target.value))}
           disabled={disabled}
+          aria-label="Top-k"
         />
       </label>
 
-      <label className={`field ${state.retriever !== "hybrid" ? "field--muted" : ""}`}>
-        <span>Alpha: {state.alpha.toFixed(2)}</span>
+      <label className={`field field--range ${alphaMuted ? "field--muted" : ""}`}>
+        <span>
+          Alpha
+          <span className="field__value">{state.alpha.toFixed(2)}</span>
+        </span>
         <input
           type="range"
           min={0}
@@ -99,17 +111,20 @@ export function Controls({ datasets, state, onChange, disabled }: Props) {
           step={0.05}
           value={state.alpha}
           onChange={(event) => update("alpha", Number(event.target.value))}
-          disabled={disabled || state.retriever !== "hybrid"}
+          disabled={disabled || alphaMuted}
+          aria-label="Alpha (hybrid retriever blend)"
         />
       </label>
 
       <fieldset className="field field--mode">
         <span>Mode</span>
-        <div className="segmented">
+        <div className="segmented" role="tablist" aria-label="Mode">
           {MODES.map((mode) => (
             <button
               key={mode.value}
               type="button"
+              role="tab"
+              aria-selected={state.mode === mode.value}
               className={buttonClass(state.mode === mode.value)}
               onClick={() => update("mode", mode.value)}
               disabled={disabled}

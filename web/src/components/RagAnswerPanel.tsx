@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import type { Hit, RagResponse } from "../api";
 import { HitsList } from "./HitsList";
+import { MarkdownContent, normalizeMarkdown } from "./MarkdownContent";
 
 interface Props {
   response: RagResponse;
@@ -14,75 +15,109 @@ interface CitationToken {
 
 type AnswerPart = string | CitationToken;
 
-const CITATION_RE = /\[(?:chunk_id\s*=\s*)?([^\]\s|]+)\]/g;
+function normalizeCitationId(raw: string): string {
+  return raw
+    .replace(/^chunk_id\s*=\s*/i, "")
+    .replace(/^citation\s*:\s*/i, "")
+    .split("|")[0]
+    .replace(/[.,;:]+$/g, "")
+    .trim();
+}
 
 function chunkIds(hits: Hit[]): Set<string> {
   return new Set(hits.map((hit) => hit.chunk_id));
 }
 
-function citationIds(answer: string): string[] {
-  const ids: string[] = [];
-  const re = new RegExp(CITATION_RE.source, "g");
-  let match: RegExpExecArray | null;
-
-  while ((match = re.exec(answer)) !== null) {
-    ids.push(match[1]);
+function findCitationAt(answer: string, index: number, known: Set<string>): CitationToken | null {
+  if (answer[index] !== "[") {
+    return null;
   }
 
-  return ids;
+  const end = answer.indexOf("]", index + 1);
+
+  if (end === -1) {
+    return null;
+  }
+
+  const raw = answer.slice(index + 1, end);
+  const id = normalizeCitationId(raw);
+
+  if (!known.has(id)) {
+    return null;
+  }
+
+  return { id, valid: true };
 }
 
 function splitAnswer(answer: string, known: Set<string>): AnswerPart[] {
+  const normalized = normalizeMarkdown(answer);
   const parts: AnswerPart[] = [];
-  const re = new RegExp(CITATION_RE.source, "g");
-  let last = 0;
-  let match: RegExpExecArray | null;
+  let buffer = "";
+  let index = 0;
 
-  while ((match = re.exec(answer)) !== null) {
-    if (match.index > last) {
-      parts.push(answer.slice(last, match.index));
+  while (index < normalized.length) {
+    const citation = findCitationAt(normalized, index, known);
+
+    if (citation) {
+      if (buffer) {
+        parts.push(buffer);
+        buffer = "";
+      }
+
+      parts.push(citation);
+      index = normalized.indexOf("]", index) + 1;
+      continue;
     }
 
-    parts.push({ id: match[1], valid: known.has(match[1]) });
-    last = match.index + match[0].length;
+    buffer += normalized[index];
+    index += 1;
   }
 
-  if (last < answer.length) {
-    parts.push(answer.slice(last));
+  if (buffer) {
+    parts.push(buffer);
   }
 
   return parts;
 }
 
+function citationIds(answer: string, known: Set<string>): string[] {
+  return splitAnswer(answer, known)
+    .filter((part): part is CitationToken => typeof part !== "string")
+    .map((part) => part.id);
+}
+
 function citedChunkIds(answer: string, hits: Hit[]): Set<string> {
   const known = chunkIds(hits);
-  return new Set(citationIds(answer).filter((id) => known.has(id)));
+  return new Set(citationIds(answer, known));
 }
 
 function inventedCitationIds(answer: string, hits: Hit[]): string[] {
   const known = chunkIds(hits);
-  return citationIds(answer).filter((id) => !known.has(id));
+  const normalized = normalizeMarkdown(answer);
+  const bracketTokens = [...normalized.matchAll(/\[([^\]]+)\]/g)];
+
+  return bracketTokens
+    .map((match) => normalizeCitationId(match[1]))
+    .filter((id) => id.includes("::"))
+    .filter((id) => !known.has(id));
 }
 
 function CitationChip({ citation }: { citation: CitationToken }) {
   return (
-    <span
-      className={`citation ${citation.valid ? "" : "citation--bad"}`}
-      title={citation.id}
-    >
+    <span className="citation" title={`Citation: ${citation.id}`}>
       [{citation.id}]
     </span>
   );
 }
 
-function Annotated({ text, known }: { text: string; known: Set<string> }) {
+function AnnotatedMarkdown({ text, known }: { text: string; known: Set<string> }) {
   const parts = useMemo(() => splitAnswer(text, known), [text, known]);
 
   return (
     <>
       {parts.map((part, index) =>
         typeof part === "string" ? (
-          <span key={index}>{part}</span>
+          <MarkdownContent key={index} text={part} inline />
         ) : (
           <CitationChip key={index} citation={part} />
         ),
@@ -95,10 +130,12 @@ export function RagAnswerPanel({ response }: Props) {
   const [showPrompt, setShowPrompt] = useState(false);
 
   const known = useMemo(() => chunkIds(response.hits), [response.hits]);
+
   const cited = useMemo(
     () => citedChunkIds(response.answer, response.hits),
     [response.answer, response.hits],
   );
+
   const invented = useMemo(
     () => inventedCitationIds(response.answer, response.hits),
     [response.answer, response.hits],
@@ -132,18 +169,23 @@ export function RagAnswerPanel({ response }: Props) {
       </div>
 
       <article className="rag__answer">
-        <Annotated text={response.answer} known={known} />
+        <AnnotatedMarkdown text={response.answer} known={known} />
       </article>
 
       <button
         className="rag__prompt-toggle"
         type="button"
         onClick={() => setShowPrompt((value) => !value)}
+        aria-expanded={showPrompt}
       >
         {showPrompt ? "Hide" : "Show"} full prompt sent to the LLM
       </button>
 
-      {showPrompt && <pre className="rag__prompt">{response.prompt}</pre>}
+      {showPrompt && (
+        <div className="rag__prompt markdown-prompt">
+          <MarkdownContent text={response.prompt} />
+        </div>
+      )}
 
       <h3 className="rag__hits-title">Retrieved chunks</h3>
       <HitsList hits={response.hits} highlight={cited} />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import type { Hit } from "../api";
+import { MarkdownContent } from "./MarkdownContent";
 
 interface Props {
   hits: Hit[];
@@ -17,7 +18,7 @@ function hitClass(highlighted?: boolean): string {
 }
 
 function shouldShowToggle(text: string): boolean {
-  return text.length > 280;
+  return text.trim().length > 180;
 }
 
 export function HitsList({ hits, highlight }: Props) {
@@ -28,7 +29,11 @@ export function HitsList({ hits, highlight }: Props) {
   return (
     <ul className="hits">
       {hits.map((hit) => (
-        <HitItem key={hit.chunk_id} hit={hit} highlighted={highlight?.has(hit.chunk_id)} />
+        <HitItem
+          key={hit.chunk_id}
+          hit={hit}
+          highlighted={highlight?.has(hit.chunk_id)}
+        />
       ))}
     </ul>
   );
@@ -36,27 +41,54 @@ export function HitsList({ hits, highlight }: Props) {
 
 function HitItem({ hit, highlighted }: HitItemProps) {
   const [open, setOpen] = useState(false);
+  const showToggle = shouldShowToggle(hit.text);
 
   const toggleOpen = () => setOpen((value) => !value);
 
   return (
     <li className={hitClass(highlighted)}>
-      <header className="hit__header" onClick={toggleOpen}>
+      <header
+        className="hit__header"
+        onClick={toggleOpen}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            toggleOpen();
+          }
+        }}
+        aria-expanded={open}
+      >
         <span className="hit__rank">#{hit.rank}</span>
-        <span className="hit__chunk">{hit.chunk_id}</span>
+
+        <span className="hit__chunk" title={hit.chunk_id}>
+          {hit.chunk_id}
+        </span>
+
         <span className="hit__score">score {hit.score.toFixed(3)}</span>
+
         {highlighted && <span className="hit__cited-tag">cited</span>}
       </header>
 
       {hit.title && <h4 className="hit__title">{hit.title}</h4>}
 
-      <p className={`hit__text ${open ? "hit__text--open" : ""}`}>{hit.text}</p>
+      <div className="hit__body">
+        <div className={`hit__text ${open ? "hit__text--open" : ""}`}>
+          <MarkdownContent text={hit.text} className="hit__markdown" />
+        </div>
 
-      {shouldShowToggle(hit.text) && (
-        <button className="hit__toggle" type="button" onClick={toggleOpen}>
-          {open ? "Show less" : "Show more"}
-        </button>
-      )}
+        {showToggle && (
+          <button
+            className={`hit__toggle ${open ? "hit__toggle--open" : ""}`}
+            type="button"
+            onClick={toggleOpen}
+            aria-expanded={open}
+          >
+            {open ? "Show less" : "Show more"}
+          </button>
+        )}
+      </div>
     </li>
   );
 }
