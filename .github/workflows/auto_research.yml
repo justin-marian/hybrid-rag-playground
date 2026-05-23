@@ -60,6 +60,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       AUTO_RESEARCH_CONFIG: ${{ github.event.inputs.config-path || 'configs/auto_research.yml' }}
       RUN_RAG: ${{ github.event.inputs.run-rag || 'false' }}
+      WEAVIATE_URL: "http://localhost:18080"
 
     steps:
       - name: Checkout repository
@@ -79,8 +80,17 @@ jobs:
         shell: bash
         run: |
           uv sync --python 3.11
+          uv pip install pyyaml python-dotenv
 
-          uv pip install pyyaml
+      - name: Show runtime info
+        shell: bash
+        run: |
+          pwd
+          python --version || true
+          uv run python --version
+          echo "PYTHONPATH=$PYTHONPATH"
+          echo "AUTO_RESEARCH_CONFIG=$AUTO_RESEARCH_CONFIG"
+          echo "RUN_RAG=$RUN_RAG"
 
       - name: Create output directories
         shell: bash
@@ -102,6 +112,12 @@ jobs:
 
           echo "Weaviate did not become ready."
           exit 1
+
+      - name: Validate auto research config
+        shell: bash
+        run: |
+          test -f "$AUTO_RESEARCH_CONFIG"
+          echo "Found config: $AUTO_RESEARCH_CONFIG"
 
       - name: Run auto research plan
         shell: bash
