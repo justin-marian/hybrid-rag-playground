@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -11,38 +10,27 @@ from typing import Any
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+from src.utils.io import hash_text, json_dumps, safe_model_name
 from src.utils.logging import get_logger
 from src.utils.paths import resolve
 
 logger = get_logger(__name__)
 
-CACHE_VERSION = 2
-
-
-def hash_text(text: str) -> str:
-    """Return a deterministic SHA1 hash for one text."""
-    return hashlib.sha1(text.encode("utf-8-sig")).hexdigest()
-
-
-def safe_model_name(model_name: str) -> str:
-    """Return a filesystem-safe model name."""
-    return model_name.replace("/", "_")
-
-
-def json_dumps(data: dict[str, Any]) -> str:
-    """Serialize metadata deterministically."""
-    return json.dumps(data, sort_keys=True, separators=(",", ":"))
+CACHE_VERSION = 2  # VERSION 2 - 
 
 
 @dataclass
 class MiniLMEmbedder:
     """Wrap a SentenceTransformer model with a deterministic on-disk cache."""
 
-    model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
     batch_size: int = 64
+    max_seq_length: int = 512
     normalize: bool = True
-    cache_dir: str | Path | None = "data/cache/embeddings"
+
+    model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
     model: object | None = field(default=None, init=False, repr=False)
+
+    cache_dir: str | Path | None = "data/cache/embeddings"
     cache_path: Path | None = field(default=None, init=False, repr=False)
     cache: dict[str, np.ndarray] = field(default_factory=dict, init=False, repr=False)
 
@@ -59,7 +47,7 @@ class MiniLMEmbedder:
     def dim(self) -> int:
         """Return the embedding dimension."""
         if "all-MiniLM-L6-v2" in self.model_name:
-            return 384
+            return 384  # already known default dimension
         model = self.load_model()
         return int(model.get_sentence_embedding_dimension())
 
@@ -67,7 +55,8 @@ class MiniLMEmbedder:
         """Return deterministic cache metadata."""
         return {
             "cache_version": CACHE_VERSION, "model_name": str(self.model_name),
-            "normalize": bool(self.normalize), "embedding_dim": int(self.dim)}
+            "normalize": bool(self.normalize), "embedding_dim": int(self.dim),
+            "max_seq_length": int(self.max_seq_length)}
 
     def load_cache(self):
         """Load a compatible cache or rebuild on legacy/incomplete metadata."""
@@ -120,6 +109,7 @@ class MiniLMEmbedder:
 
         logger.info("Loading SentenceTransformer model: %s", self.model_name)
         self.model = SentenceTransformer(self.model_name)
+        self.model.max_seq_length = int(self.max_seq_length)
         return self.model
 
     def encode(self, texts: list[str], show_progress: bool = True) -> np.ndarray:
@@ -143,6 +133,8 @@ class MiniLMEmbedder:
         missing_texts = [texts[index] for index in missing_idx]
         logger.info("Embedding %d new texts (%d cached) with %s", len(missing_texts), len(texts) - len(missing_texts), self.model_name)
 
+        #! Sentence transformer only supports 512 context length (all-MiniLM-L6-v2)
+        model.max_seq_length = min(getattr(model, "max_seq_length", 512), 512)
         vectors = model.encode(
             missing_texts, batch_size=self.batch_size, show_progress_bar=show_progress,
             normalize_embeddings=self.normalize, convert_to_numpy=True
