@@ -10,30 +10,21 @@ up the PDF mostly becomes copy/edit work.
 
 Suggested talking points:
 
-- BEIR datasets used: NFCorpus (~3.6K, medical), SciFact (~5K, scientific
-  fact-checking), FiQA (~57K, financial Q&A).
-- Chunking: fixed-size 256 tokens, 10% overlap (token-aware using the MiniLM
-  tokenizer, falling back to word-level).
-- Embedder: `sentence-transformers/all-MiniLM-L6-v2`, 384-d, cosine
-  (normalized embeddings).
-- Vector DB: Weaviate 1.27 in BYO-vectors mode, HNSW (default parameters), BM25
-  on the `text` property (default `k1=1.2`, `b=0.75`). One collection per
-  dataset (`Nfcorpus`, `Scifact`, `Fiqa`).
-- Retrievers: BM25 (`collection.query.bm25`), dense (`near_vector`), hybrid
-  (`hybrid(alpha=0.5)`).
+- BEIR datasets used: NFCorpus (~3.6K, medical), SciFact (~5K, scientific fact-checking), FiQA (~57K, financial Q&A).
+- Chunking: fixed-size 256 tokens, 10% overlap (token-aware using the MiniLM tokenizer, falling back to word-level).
+- Embedder: `sentence-transformers/all-MiniLM-L6-v2`, 384-d, cosine (normalized embeddings).
+- Vector DB: Weaviate 1.27 in BYO-vectors mode, HNSW (default parameters), BM25 on the `text` property (default `k1=1.2`, `b=0.75`). One collection per dataset (`Nfcorpus`, `Scifact`, `Fiqa`).
+- Retrievers: BM25 (`collection.query.bm25`), dense (`near_vector`), hybrid (`hybrid(alpha=0.5)`).
 - LLM: Ollama running `gemma2:2b` (default) or `llama3.2:3b`.
-- Metric scope: all metrics computed on **doc-level** rankings (chunks are
-  collapsed to their source `doc_id`, deduplicating at first occurrence).
+- Metric scope: all metrics computed on **doc-level** rankings (chunks are collapsed to their source `doc_id`, deduplicating at first occurrence).
 
-Diagram idea (optional): query → embed → BM25 || ANN → hybrid fusion → top-k
-chunks → prompt → Ollama → cited answer.
+Diagram idea (optional): query → embed → BM25 || ANN → hybrid fusion → top-k chunks → prompt → Ollama → cited answer.
 
 ---
 
 ## 2. Retrieval comparison table (Cerința 2)
 
-Insert the contents of `docs/retrieval_comparison_table.md` here, or import
-`docs/retrieval_comparison_table.csv` directly into the PDF as a table.
+Insert the contents of `docs/retrieval_comparison_table.md` here, or import `docs/retrieval_comparison_table.csv` directly into the PDF as a table.
 
 Source data: `data/results/retrieval_metrics.csv`.
 
@@ -42,18 +33,12 @@ Source data: `data/results/retrieval_metrics.csv`.
 Look at the three datasets side-by-side and confirm/refute the following claims
 in the report:
 
-- **BM25 wins on fact-checking** (SciFact tends to favor BM25 because queries
-  and relevant passages share rare technical vocabulary verbatim). If your
-  numbers show this, say so explicitly.
-- **Dense wins on FiQA** (financial Q&A is paraphrase-heavy; semantic matching
-  beats lexical overlap). Verify.
-- **NFCorpus is in between** (medical/nutrition has both technical jargon and
-  paraphrasing). The hybrid is usually the safe choice.
-- **No retriever dominates across all 3 datasets and all 3 metrics.** This is
-  the central observation the report must make.
+- **BM25 wins on fact-checking** (SciFact tends to favor BM25 because queries and relevant passages share rare technical vocabulary verbatim). If your numbers show this, say so explicitly.
+- **Dense wins on FiQA** (financial Q&A is paraphrase-heavy; semantic matching beats lexical overlap). Verify.
+- **NFCorpus is in between** (medical/nutrition has both technical jargon and paraphrasing). The hybrid is usually the safe choice.
+- **No retriever dominates across all 3 datasets and all 3 metrics.** This is the central observation the report must make.
 
-If your numbers contradict the typical pattern, that's fine — describe what
-you actually see and propose a plausible cause.
+If your numbers contradict the typical pattern, that's fine — describe what you actually see and propose a plausible cause.
 
 ---
 
@@ -119,32 +104,13 @@ Copy this block, verbatim, into the PDF:
 > 1. `docker compose -f docker/docker-compose.yml up -d`
 > 2. `ollama pull gemma2:2b`
 > 3. `pip install -e .`
-> 4. `python -m src.experiments.run_indexing`
+> 4. `python -m src.experiments.run_indexing_eval`
 > 5. `python -m src.experiments.run_retrieval_eval`
 > 6. `python -m src.experiments.run_rag_demo`
 > 7. `python -m src.experiments.run_sweep`
 >
 > All paths are project-root-relative. The BEIR datasets are downloaded
 > automatically into `data/beir/` and are **not** part of the submission archive.
-
----
-
-## 7. Video demo notes (≤ 2 minutes)
-
-Recommended script for the screen recording:
-
-1. `docker compose ... up -d` (5 s, just show the container is up).
-2. `python -m src.experiments.run_demo_single --query "..."` (the heavy lift).
-3. Visually walk through the four panels printed by `run_demo_single`:
-   - BM25 top-5
-   - Dense top-5
-   - Hybrid top-5
-   - Final RAG answer with `[chunk_id=...]` citations
-4. Point out one chunk that all three retrievers agree on, and one where they
-   disagree. End on the cited final answer.
-
-Encode the video as H.264 (1080p, ~2 Mbps) to stay well under the 50 MB Moodle
-limit.
 
 ---
 
