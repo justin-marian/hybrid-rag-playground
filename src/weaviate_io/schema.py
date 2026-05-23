@@ -42,7 +42,7 @@ def distance_metric(distance: str) -> wvcc.VectorDistances:
     return DISTANCE_METRICS[key]
 
 
-def ensure_collection(client: WeaviateClient, name: str, distance: str = "cosine", recreate: bool = False) -> None:
+def ensure_collection(client: WeaviateClient, name: str, distance: str, recreate: bool, vector_name: str = "default") -> None:
     """Create a Weaviate collection unless it already exists."""
     if recreate and client.collections.exists(name):
         logger.warning("Dropping existing collection %s", name)
@@ -53,11 +53,12 @@ def ensure_collection(client: WeaviateClient, name: str, distance: str = "cosine
         return
 
     metric = distance_metric(distance)
-    logger.info("Creating Weaviate collection %s (distance=%s)", name, distance)
+    logger.info("Creating Weaviate collection %s (distance=%s, vector=%s)", name, distance, vector_name)
     client.collections.create(
         name=name,
         vector_config=wvcc.Configure.Vectors.self_provided(
-        vector_index_config=wvcc.Configure.VectorIndex.hnsw(distance_metric=metric)),
+            name=vector_name,
+            vector_index_config=wvcc.Configure.VectorIndex.hnsw(distance_metric=metric)),
         inverted_index_config=wvcc.Configure.inverted_index(),
         properties=CHUNK_PROPERTIES)
 

@@ -23,8 +23,6 @@ def to_uuid(chunk_id: str) -> str:
 
 def chunk_index(chunk: Chunk) -> int:
     """Return the chunk index while tolerating older chunk field names."""
-    if hasattr(chunk, "chk_idx"):
-        return int(chunk.chk_idx)
     return int(chunk.chk_idx)
 
 
@@ -55,9 +53,7 @@ def log_failed_objects(failed: Iterable[object], limit: int = 3) -> int:
     return len(failed_list)
 
 
-def index_chunks(
-    client: WeaviateClient, collection_name: str, chunks: list[Chunk],
-    embedder: MiniLMEmbedder, batch_size: int = 200) -> int:
+def index_chunks(client: WeaviateClient, collection_name: str, chunks: list[Chunk], embedder: MiniLMEmbedder, batch_size: int, vector_name: str = "default") -> int:
     """Embed chunks and insert them into a Weaviate collection."""
     if not chunks:
         logger.warning("No chunks to index into %s", collection_name)
@@ -74,7 +70,7 @@ def index_chunks(
     with collection.batch.fixed_size(batch_size=batch_size) as batch:
         iterator = zip(chunks, vectors, strict=True)
         for chunk, vector in tqdm(iterator, total=len(chunks), desc=f"Indexing {collection_name}"):
-            batch.add_object(properties=chunk_properties(chunk), uuid=to_uuid(chunk.chunk_id), vector=vector.tolist())
+            batch.add_object(properties=chunk_properties(chunk), uuid=to_uuid(chunk.chunk_id), vector={vector_name: vector.tolist()})
             inserted += 1
 
     failed_count = log_failed_objects(collection.batch.failed_objects)
