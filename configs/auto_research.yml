@@ -60,7 +60,7 @@ stages:
 
   - name: indexing_chunk_sweep
     description: Re-index each dataset for each configured chunk size.
-    enabled: true
+    enabled: false
     module: src.experiments.run_indexing_eval
     matrix:
       dataset: "{datasets}"
@@ -102,7 +102,7 @@ stages:
 ###################################################################################
   - name: testing_full_sweep
     description: Run the calibration sweep from system_arch.yaml for each dataset.
-    enabled: true
+    enabled: false
     module: src.experiments.run_testing
     matrix:
       dataset: "{datasets}"

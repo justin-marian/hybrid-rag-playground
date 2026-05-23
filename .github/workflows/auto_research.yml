@@ -8,7 +8,7 @@ on:
         required: false
         default: "configs/auto_research.yml"
       run-rag:
-        description: "Run Hybrid-RAG Beir stages"
+        description: "Run Hybrid-RAG BEIR Stages"
         required: false
         default: "false"
         type: choice
@@ -25,6 +25,7 @@ on:
       - "scripts/run_auto_research.py"
       - ".github/workflows/auto_research.yml"
       - "pyproject.toml"
+      - "uv.lock"
 
 jobs:
   auto-research:
@@ -34,16 +35,24 @@ jobs:
 
     services:
       weaviate:
-        image: semitechnologies/weaviate:1.25.6
+        image: cr.weaviate.io/semitechnologies/weaviate:1.27.0
         ports:
-          - 8001:8001
-          - 15051:15051
+          - 18080:8080
+          - 15051:50051
         env:
           QUERY_DEFAULTS_LIMIT: 25
           AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
           PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
           DEFAULT_VECTORIZER_MODULE: "none"
-          CLUSTER_HOSTNAME: "node1"
+          ENABLE_MODULES: ""
+          CLUSTER_HOSTNAME: "jpm"
+          QUERY_MAXIMUM_RESULTS: 10000
+          DISK_USE_READONLY_PERCENTAGE: 95
+        options: >-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:8080/v1/.well-known/ready || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
 
     env:
       PYTHONUNBUFFERED: "1"
@@ -56,22 +65,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-          cache: "pip"
+          enable-cache: true
+
+      - name: Set up Python
+        shell: bash
+        run: |
+          uv python install 3.11
 
       - name: Install dependencies
         shell: bash
         run: |
-          python -m pip install --upgrade pip
+          uv sync --python 3.11
 
-          if [ -f pyproject.toml ]; then
-            pip install -e .
-          fi
-
-          pip install pyyaml
+          uv pip install pyyaml
 
       - name: Create output directories
         shell: bash
@@ -82,7 +91,7 @@ jobs:
         shell: bash
         run: |
           for i in {1..60}; do
-            if curl -fsS http://localhost:8001/v1/.well-known/ready; then
+            if curl -fsS http://localhost:18080/v1/.well-known/ready; then
               echo "Weaviate is ready."
               exit 0
             fi
@@ -97,7 +106,7 @@ jobs:
       - name: Run auto research plan
         shell: bash
         run: |
-          python3 scripts/run_auto_research.py
+          uv run python scripts/run_auto_research.py
 
       - name: Upload experiment artifacts
         uses: actions/upload-artifact@v4

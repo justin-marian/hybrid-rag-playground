@@ -8,21 +8,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import yaml
 from dotenv import load_dotenv
 
+from src.utils.io import read_yaml
+
 load_dotenv()
-config_path = Path(os.environ.get("AUTO_RESEARCH_CONFIG", "../configs/auto_research.yml"))
+config_path = Path(os.environ["AUTO_RESEARCH_CONFIG"])
 run_rag = os.environ.get("RUN_RAG", "false").lower() == "true"
 
 if not config_path.exists():
     raise FileNotFoundError(f"Missing auto research config: {config_path}")
-
-
-def read_yaml(path: Path) -> dict[str, Any]:
-    """Read a YAML file as a dictionary."""
-    with path.open("r", encoding="utf-8-sig") as handle:
-        return yaml.safe_load(handle) or {}
 
 
 def resolve_value(value: Any, context: dict[str, Any]) -> Any:
@@ -90,7 +85,7 @@ def run_command(command: list[str], log_path: Path, stop_on_failure: bool) -> in
     print(f"\n$ {shlex.join(command)}")
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with log_path.open("w", encoding="utf-8-sig") as log:
+    with log_path.open("w", encoding="utf-8") as log:
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, text=True)
