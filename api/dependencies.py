@@ -13,7 +13,7 @@ from typing import Any
 
 import weaviate
 
-from src.data.dataset_registry import DatasetSpec, load_registry
+from src.data.dataset_registry import DatasetSpec, load_datasets
 from src.embeddings.minilm_embedder import MiniLMEmbedder
 from src.rag.ollama_client import OllamaClient
 from src.retrieval.bm25 import BM25Retriever
@@ -34,18 +34,21 @@ class AppContext:
 
     retrieval_cfg: dict[str, Any]
     rag_cfg: dict[str, Any]
-    registry: dict[str, DatasetSpec]
+    datasets: dict[str, DatasetSpec]
+
     embedder: MiniLMEmbedder
     weaviate: weaviate.WeaviateClient
     llm: OllamaClient
 
+    @property
+    def get_llm(self) -> dict[str, Any]:
+        return self.rag_cfg.get("llm", {})
+
     def get_spec(self, dataset_key: str) -> DatasetSpec:
         """Return the dataset spec for a registry key."""
-        if dataset_key in self.registry:
-            return self.registry[dataset_key]
-
-        raise KeyError(
-            f"Unknown dataset {dataset_key!r}. Known: {sorted(self.registry)}")
+        if dataset_key in self.datasets:
+            return self.datasets[dataset_key]
+        raise KeyError(f"Unknown dataset {dataset_key!r}. Known: {sorted(self.datasets)}")
 
     def collection_for(self, dataset_key: str) -> str:
         """Return the Weaviate collection name for a dataset."""
@@ -53,9 +56,7 @@ class AppContext:
         prefix = self.retrieval_cfg["weaviate"]["collection_prefix"]
         return collection_name(prefix, spec.key)
 
-    def make_retriever(
-            self, dataset_key: str, retriever: str,
-            alpha: float | None = None):
+    def make_retriever(self, dataset_key: str, retriever: str, alpha: float | None = None):
         """Build a retriever bound to one dataset collection."""
         coll = self.collection_for(dataset_key)
         retriever_name = retriever.lower()
@@ -67,12 +68,8 @@ class AppContext:
             return DenseRetriever(self.weaviate, coll, self.embedder)
 
         if retriever_name == "hybrid":
-            hybrid_alpha = (
-                alpha if alpha is not None
-                else self.retrieval_cfg["retrieval"]["hybrid_alpha"])
-            return HybridRetriever(
-                self.weaviate, coll, self.embedder,
-                alpha=float(hybrid_alpha))
+            hybrid_alpha = (alpha if alpha is not None else self.retrieval_cfg["retrieval"]["hybrid_alpha"])
+            return HybridRetriever(self.weaviate, coll, self.embedder, alpha=float(hybrid_alpha))
 
         raise ValueError(f"Unknown retriever: {retriever!r}")
 
@@ -86,9 +83,12 @@ class AppContext:
 
 def build_embedder(cfg: dict[str, Any]) -> MiniLMEmbedder:
     """Build the shared MiniLM embedder."""
+    emb = cfg["embedding"]
+    max_seq_length = emb.get("max_seq_length", emb.get("max_seq_legth", 512))
     return MiniLMEmbedder(
-        model_name=cfg["embedding"]["model_name"], batch_size=cfg["embedding"]["batch_size"],
-        normalize=cfg["embedding"]["normalize"], cache_dir=cfg["embedding"]["cache_dir"])
+        model_name=emb["model_name"], batch_size=emb["batch_size"],
+        normalize=emb["normalize"], cache_dir=emb["cache_dir"],
+        max_seq_length=int(max_seq_length))
 
 
 def connect_weaviate(cfg: dict[str, Any]) -> weaviate.WeaviateClient:
@@ -108,7 +108,7 @@ def build_context() -> AppContext:
     with context_lock:
         retrieval_cfg = load_yaml("retrieval.yaml")
         rag_cfg = load_yaml("rag.yaml")
-        registry = load_registry("datasets.yaml")
+        datasets = load_datasets("datasets.yaml")
 
         embedder = build_embedder(retrieval_cfg)
         client = connect_weaviate(retrieval_cfg)
@@ -120,5 +120,5 @@ def build_context() -> AppContext:
             retrieval_cfg["weaviate"]["http_port"], llm.model)
 
         return AppContext(
-            retrieval_cfg=retrieval_cfg, rag_cfg=rag_cfg, registry=registry,
+            retrieval_cfg=retrieval_cfg, rag_cfg=rag_cfg, datasets=datasets,
             embedder=embedder, weaviate=client, llm=llm)

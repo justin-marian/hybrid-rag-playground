@@ -18,9 +18,7 @@ class DatasetInfo(BaseModel):
     description: str
     expected_size: int
     collection_name: str
-    indexed_count: int | None = Field(
-        default=None,
-        description="Number of chunk objects stored in Weaviate, or None if unavailable.")
+    indexed_count: int | None = Field(default=None, description="No. chunk objects stored in Weaviate, or None if unavailable.")
 
 
 class DatasetsResponse(BaseModel):
@@ -91,7 +89,7 @@ class HealthResponse(BaseModel):
 
     status: Literal["ok", "degraded"]
     weaviate_ready: bool
-    ollama_reachable: bool
+    llm_reachable: bool
     embedder_loaded: bool
     detail: str | None = None
 
