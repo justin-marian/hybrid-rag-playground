@@ -12,8 +12,8 @@ from pathlib import Path
 def project_root() -> Path:
     """Return the repository root (directory that contains pyproject.toml).
 
-    Walks up from this file until ``pyproject.toml`` is found. Falls back to
-    three parents up if not found (defensive).
+    Walks up from this file until ``pyproject.toml`` is found. 
+    Falls back to three parents up if not found (defensive).
     """
     here = Path(__file__).resolve()
     return next((parent for parent in [here.parent, *here.parents] if (parent / "pyproject.toml").exists()), here.parents[2])
