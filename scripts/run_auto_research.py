@@ -10,7 +10,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from src.utils.io import read_yaml
+from ..src.utils.io import read_yaml
 
 load_dotenv()
 config_path = Path(os.environ["AUTO_RESEARCH_CONFIG"])
