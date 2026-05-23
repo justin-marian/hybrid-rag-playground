@@ -1,6 +1,6 @@
 import { ApiError } from "./errors";
 import type {
-  ConfigResponse, DatasetsResponse, HealthResponse,
+  ConfigResponse, DatasetInfo, HealthResponse,
   RagRequest, RagResponse,
   RetrieveRequest, RetrieveResponse
 } from "./types";
@@ -17,7 +17,20 @@ function readErrorDetail(body: unknown, fallback: string): string {
 
 async function parseJsonResponse(res: Response): Promise<unknown> {
   const text = await res.text();
-  return text ? JSON.parse(text) : null;
+
+  if (!text) {
+    return null;
+  }
+
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new ApiError(
+      res.status,
+      `Expected JSON from ${res.url}, got ${contentType || "unknown content type"}`,
+      text);
+  }
+
+  return JSON.parse(text);
 }
 
 async function request<T>(path: string, init: RequestInit = {}, timeoutMs = 30_000): Promise<T> {
@@ -42,6 +55,12 @@ async function request<T>(path: string, init: RequestInit = {}, timeoutMs = 30_0
     }
 
     return body as T;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError(408, `Request timed out after ${Math.round(timeoutMs / 1000)} seconds.`, null);
+    }
+
+    throw err;
   } finally {
     window.clearTimeout(timer);
   }
@@ -51,10 +70,25 @@ function postJson<TResponse, TBody>(path: string, body: TBody, timeoutMs?: numbe
   return request<TResponse>(path, { method: "POST", body: JSON.stringify(body) }, timeoutMs);
 }
 
+function normalizeDatasets(data: unknown): DatasetInfo[] {
+  if (Array.isArray(data)) {
+    return data as DatasetInfo[];
+  }
+
+  if (data && typeof data === "object" &&"datasets" in data && 
+    Array.isArray((data as { datasets: unknown }).datasets)) {
+    return (data as { datasets: DatasetInfo[] }).datasets;
+  }
+
+  return [];
+}
+
 export const api = {
   health: () => request<HealthResponse>("/api/health"),
   config: () => request<ConfigResponse>("/api/config"),
-  datasets: () => request<DatasetsResponse>("/api/datasets"),
-  retrieve: (body: RetrieveRequest) => postJson<RetrieveResponse, RetrieveRequest>("/api/retrieve", body),
-  rag: (body: RagRequest) => postJson<RagResponse, RagRequest>("/api/rag", body, 40_000)
+  datasets: async () => normalizeDatasets(await request<unknown>("/api/datasets")),
+  retrieve: (body: RetrieveRequest) =>
+    postJson<RetrieveResponse, RetrieveRequest>("/api/retrieve", body),
+  rag: (body: RagRequest) =>
+    postJson<RagResponse, RagRequest>("/api/rag", body, 120_000),
 };

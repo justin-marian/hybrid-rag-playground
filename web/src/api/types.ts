@@ -26,7 +26,7 @@ export interface DatasetsResponse {
 export interface HealthResponse {
     status: "ok" | "degraded";
     weaviate_ready: boolean;
-    ollama_reachable: boolean;
+    llm_reachable: boolean;
     embedder_loaded: boolean;
     detail: string | null;
 }
