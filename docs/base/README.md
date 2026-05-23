@@ -22,7 +22,7 @@ This folder contains the full README content split into smaller local Markdown f
 ```text
 Weaviate REST  = 18080
 Weaviate gRPC  = 15051
-FastAPI        = 8001
+FastAPI        = 8080
 Frontend       = 5173
 ```
 

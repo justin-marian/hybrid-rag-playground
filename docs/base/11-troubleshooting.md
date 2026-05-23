@@ -44,9 +44,9 @@ Usually this means the dataset was not indexed, the API points to the wrong coll
 <summary><b>Show retrieval debugging commands</b></summary>
 
 ```bash
-python3 -m src.experiments.run_indexing --dataset scifact
+python3 -m src.experiments.run_indexing_eval --dataset scifact
 python3 -m src.experiments.run_single --dataset scifact --top-k 5 --alpha 0.5
-curl -s http://localhost:8001/api/datasets
+curl -s http://localhost:8080/api/datasets
 ```
 
 </details>

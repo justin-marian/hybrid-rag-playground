@@ -35,8 +35,8 @@ git --version
 <summary><b>Show clone commands</b></summary>
 
 ```bash
-git clone <your-repository-url>
-cd <your-repository-name>
+git clone https://github.com/justin-marian/hybrid-rag-playground
+cd hybrid-rag-playground
 ```
 
 </details>
@@ -186,19 +186,19 @@ Indexing creates chunk objects in Weaviate. A useful chunk object should contain
 Run default indexing:
 
 ```bash
-python3 -m src.experiments.run_indexing
+python3 -m src.experiments.run_indexing_eval
 ```
 
 Index only SciFact:
 
 ```bash
-python3 -m src.experiments.run_indexing --dataset scifact
+python3 -m src.experiments.run_indexing_eval --dataset scifact
 ```
 
 Re-index SciFact with a specific chunk size:
 
 ```bash
-python3 -m src.experiments.run_indexing --dataset scifact --chunk-size 512 --recreate
+python3 -m src.experiments.run_indexing_eval --dataset scifact --chunk-size 512 --recreate
 ```
 
 </details>
@@ -261,13 +261,13 @@ A good trace should answer five questions: was the right evidence retrieved, wer
 Open:
 
 ```text
-http://localhost:8001/docs
+http://localhost:8080/docs
 ```
 
 Health check:
 
 ```bash
-curl -s http://localhost:8001/api/health
+curl -s http://localhost:8080/api/health
 ```
 
 </details>

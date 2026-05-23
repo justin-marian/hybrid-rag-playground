@@ -10,7 +10,7 @@ The experiment scripts keep evaluation from becoming “I tried a few questions 
 
 ### Runners
 
-- `run_indexing` builds or rebuilds dataset indexes.
+- `run_indexing_eval` builds or rebuilds dataset indexes.
 - `run_retrieval_eval` scores retrieval with qrels.
 - `run_testing` runs calibration sweeps.
 - `run_rag_demo` saves example RAG traces.
@@ -20,7 +20,7 @@ The experiment scripts keep evaluation from becoming “I tried a few questions 
 <summary><b>Show experiment commands</b></summary>
 
 ```bash
-python3 -m src.experiments.run_indexing
+python3 -m src.experiments.run_indexing_eval
 python3 -m src.experiments.run_retrieval_eval
 python3 -m src.experiments.run_testing
 python3 -m src.experiments.run_rag_demo
@@ -34,10 +34,10 @@ python3 -m src.experiments.run_single
 
 ```bash
 # Index one dataset
-python3 -m src.experiments.run_indexing --dataset scifact
+python3 -m src.experiments.run_indexing_eval --dataset scifact
 
 # Re-index with a custom chunk size
-python3 -m src.experiments.run_indexing --dataset scifact --chunk-size 512 --recreate
+python3 -m src.experiments.run_indexing_eval --dataset scifact --chunk-size 512 --recreate
 
 # Evaluate hybrid retrieval
 python3 -m src.experiments.run_retrieval_eval --dataset scifact --top-k 10 --alpha 0.5

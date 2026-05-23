@@ -20,7 +20,7 @@ The API sits between the frontend, experiment scripts, Weaviate, and Ollama.
 <summary><b>Show API docs URL</b></summary>
 
 ```text
-http://localhost:8001/docs
+http://localhost:8080/docs
 ```
 
 </details>
