@@ -7,7 +7,13 @@ from dataclasses import dataclass
 
 from tqdm import tqdm
 
-from src.evaluation.metrics import collapse_chunks_to_docs, mean, ndcg_at_k, recall_at_k, reciprocal_rank
+from src.evaluation.metrics import (
+    collapse_chunks_to_docs,
+    mean,
+    ndcg_at_k,
+    recall_at_k,
+    reciprocal_rank,
+)
 from src.retrieval.base import Retriever
 from src.utils.logging import get_logger
 
@@ -42,7 +48,7 @@ def valid_query_ids(queries: dict[str, str], qrels: dict[str, dict[str, int]], q
 def evaluate_retriever(
     retriever: Retriever, queries: dict[str, str],
     qrels: dict[str, dict[str, int]], dataset_name: str,
-    top_k: int = 10, query_ids: Iterable[str] | None = None) -> EvalResult:
+    top_k: int, query_ids: Iterable[str] | None = None) -> EvalResult:
     """Run a retriever over queries and compute mean Recall@10, MRR, and nDCG@10."""
     selected_query_ids = valid_query_ids(queries, qrels, query_ids)
     recalls: list[float] = []

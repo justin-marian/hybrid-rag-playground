@@ -67,7 +67,7 @@ def write_markdown_table(results: list[EvalResult], md_path: str | Path) -> Path
 
     wide_df = results_to_wide_df(results)
 
-    with md_p.open("w", encoding="utf-8-sig") as handle:
+    with md_p.open("w", encoding="utf-8") as handle:
         handle.write("# Retrieval Comparison\n\n")
         handle.write("Metrics are reported per retriever and dataset. Higher is better for all metrics.\n\n")
         handle.write(wide_df.to_markdown(index=False, floatfmt=".4f"))
