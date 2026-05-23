@@ -1,6 +1,6 @@
 """FastAPI entry point for the Hybrid RAG BEIR API.
 
-Run locally with:                       uvicorn app:app --reload --host 0.0.0.0 --port 8001
+Run locally with:                       uvicorn app:app --reload --host 0.0.0.0 --port 8080
 Or via the convenience launcher::       ./run_api.sh
 
 The server expects the Weaviate Docker container to be running on the ports
@@ -14,6 +14,7 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,9 +22,11 @@ from api.dependencies import build_context
 from api.routes import router
 from src.utils.logging import get_logger
 
+load_dotenv()
+
 logger = get_logger(__name__)
 
-DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4173"]
+DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5173"]
 
 
 def read_allowed_origins() -> list[str]:

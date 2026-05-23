@@ -25,7 +25,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "pyyaml>=6.0",
     "tqdm",
-    "click>=8.3.3",
+    "click>=8.4.1",
     "pyyaml>=6.0.3",
     "rich>=15.0.0",
     "fastapi>=0.115.0",
@@ -35,16 +35,18 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.6.0",
+    "ruff>=0.15.14",
     "pre-commit>=4.6.0",
     "pytest>=9.0.3"
 ]
 
 [project.scripts]
-index = "src.experiments.run_indexing:main"
+index = "src.experiments.run_indexing_eval:main"
 eval = "src.experiments.run_retrieval_eval:main"
+
 rag = "src.experiments.run_rag_demo:main"
 sweep = "src.experiments.run_sweep:main"
+
 demo = "src.experiments.run_demo_single:main"
 
 [tool.setuptools.packages.find]
