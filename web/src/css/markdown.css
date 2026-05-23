@@ -1,0 +1,55 @@
+/* Markdown alignment fixes */
+.markdown-body {
+  line-height: 1.65;
+  color: inherit;
+}
+
+.markdown-body > :first-child {
+  margin-top: 0;
+}
+
+.markdown-body > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body p {
+  margin: 0 0 0.75rem;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.5rem 0 0.75rem;
+  padding-left: 1.35rem;
+}
+
+.markdown-body li {
+  margin: 0.25rem 0;
+}
+
+.markdown-body--inline {
+  display: inline;
+  line-height: inherit;
+  vertical-align: baseline;
+}
+
+.markdown-body--inline p {
+  display: inline;
+  margin: 0;
+}
+
+.rag__answer {
+  line-height: 1.7;
+}
+
+.rag__answer .citation {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: baseline;
+  white-space: nowrap;
+  margin: 0 0.2rem;
+}
+
+.rag__answer .markdown-body--inline + .citation,
+.rag__answer .citation + .markdown-body--inline {
+  margin-left: 0.15rem;
+}

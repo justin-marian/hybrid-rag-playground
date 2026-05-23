@@ -1,0 +1,77 @@
+/* Citation visibility fix for RagAnswerPanel.
+   Keep this file loaded after the main app CSS so it wins over older rules. */
+
+.rag__answer-content {
+  display: block;
+  color: var(--text);
+}
+
+.rag__answer-content .markdown-body--inline {
+  display: inline !important;
+}
+
+.rag__answer-content .markdown-body--inline > * {
+  display: inline !important;
+  margin: 0 !important;
+}
+
+.rag__answer-content .markdown-body--inline p,
+.rag__answer-content .markdown-body--inline ul,
+.rag__answer-content .markdown-body--inline ol,
+.rag__answer-content .markdown-body--inline li {
+  display: inline !important;
+  margin: 0 !important;
+}
+
+.rag__answer .citation,
+.rag__citations .citation {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  vertical-align: baseline;
+
+  margin: 0 4px;
+  padding: 2px 7px;
+  min-height: 20px;
+
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent-softer);
+  color: var(--accent-strong) !important;
+
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-decoration: none !important;
+}
+
+.rag__answer .citation--invalid {
+  border-color: #f59e0b;
+  background: #fff7ed;
+  color: #b45309 !important;
+}
+
+.rag__citations {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.rag__citations-label {
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rag__citations .citation--summary {
+  margin: 0;
+}

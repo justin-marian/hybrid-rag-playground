@@ -1,46 +1,200 @@
+.querybar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .querybar {
   display: flex;
-  gap: 10px;
-  align-items: stretch;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 8px;
+  box-shadow: var(--shadow);
+  transition: border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.querybar:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--shadow), var(--shadow-focus);
 }
 
 .querybar__input {
-  flex: 1;
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
+  flex: 1 1 auto;
+  width: 100%;
+
+  height: 52px;
+  min-height: 52px;
+
+  background: transparent;
+  border: none;
   color: var(--text);
-  padding: 12px 14px;
-  font-size: 15px;
+  padding: 13px 14px;
+  font-size: 15.5px;
+  line-height: 1.55;
   border-radius: var(--radius);
+
   resize: vertical;
-  min-height: 48px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
   font-family: inherit;
-  line-height: 1.5;
+}
+
+.querybar__input::placeholder {
+  color: var(--text-faint);
 }
 
 .querybar__input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.25);
+  box-shadow: none;
 }
 
 .querybar__btn {
-  background: var(--accent-strong);
+  flex: 0 0 124px;
+  align-self: flex-start;
+
+  width: 124px;
+  min-width: 124px;
+  max-width: 124px;
+
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
   color: white;
-  border: none;
+  border: 1px solid var(--accent-strong);
   border-radius: var(--radius);
-  padding: 0 22px;
+  padding: 0 18px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  min-width: 110px;
+  font-family: inherit;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  box-shadow: 0 1px 2px rgba(29, 78, 216, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    filter var(--dur) var(--ease);
 }
 
 .querybar__btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
+  filter: saturate(0.7);
 }
 
 .querybar__btn:not(:disabled):hover {
-  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(29, 78, 216, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  filter: brightness(1.04);
+}
+
+.querybar__btn:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(29, 78, 216, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.querybar__btn-arrow {
+  display: inline-block;
+  transition: transform var(--dur) var(--ease);
+}
+
+.querybar__btn:not(:disabled):hover .querybar__btn-arrow {
+  transform: translateX(2px);
+}
+
+.querybar__hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.querybar__hint kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--text-mid);
+  font-weight: 600;
+}
+
+/* Loading dots */
+.querybar__btn-loading {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.querybar__btn-loading span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: bounce 1.2s var(--ease) infinite;
+}
+
+.querybar__btn-loading span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.querybar__btn-loading span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .querybar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .querybar__input {
+    height: 52px;
+    min-height: 52px;
+    max-height: 180px;
+  }
+
+  .querybar__btn {
+    flex: 0 0 auto;
+    align-self: stretch;
+
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+
+    height: 52px;
+    min-height: 52px;
+    max-height: 52px;
+
+    padding: 0 22px;
+  }
 }
