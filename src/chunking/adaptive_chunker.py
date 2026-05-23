@@ -54,13 +54,15 @@ def flush_current(chunks: list[str], curr_sentences: list[str]):
 class AdaptiveDocChunker:
     """Chunk BEIR documents adaptively while preserving document-level relevance alignment."""
 
-    chunk_size_tokens: int = 512
-    overlap_ratio: float = 0.10
     tokenizer_name: str | None = "sentence-transformers/all-MiniLM-L6-v2"
-    full_doc_thr_tokens: int = 384
-    min_chunk_tokens: int = 80
-    preserve_title: bool = True
     tokenizer: Any | None = field(default=None, init=False, repr=False)
+
+    chunk_size_tokens: int = 512
+    min_chunk_tokens: int = 80
+    full_doc_thr_tokens: int = 384
+
+    overlap_ratio: float = 0.10
+    preserve_title: bool = True
 
     def __post_init__(self):
         if not 0.0 <= self.overlap_ratio < 1.0:
@@ -84,12 +86,14 @@ class AdaptiveDocChunker:
         """Return the token-window stride used by fallback splitting."""
         return max(1, self.chunk_size_tokens - self.overlap_tokens)
 
-    def loadtokenizer(self) -> Any | None:
+    def load_tokenizer(self) -> Any | None:
         """Load the HuggingFace tokenizer lazily, falling back to word counts on failure."""
         if self.tokenizer is not None or self.tokenizer_name is None:
             return self.tokenizer
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
+        if hasattr(self.tokenizer, "model_max_length"):
+            self.tokenizer.model_max_length = int(1e9)
         logger.debug("Loaded tokenizer: %s", self.tokenizer_name)
         return self.tokenizer
 
@@ -99,7 +103,7 @@ class AdaptiveDocChunker:
         if not text:
             return 0
 
-        tokenizer = self.loadtokenizer()
+        tokenizer = self.load_tokenizer()
         if tokenizer is None:
             return len(text.split())
         return len(tokenizer.encode(text, add_special_tokens=False))
@@ -110,7 +114,7 @@ class AdaptiveDocChunker:
         if not text:
             return []
 
-        tokenizer = self.loadtokenizer()
+        tokenizer = self.load_tokenizer()
         if tokenizer is None:
             return self.word_window_split(text)
 
@@ -220,11 +224,11 @@ class AdaptiveDocChunker:
         is_full_doc = len(pieces) == 1
 
         return [Chunk(
-                chunk_id=f"{doc_id}::doc" if is_full_doc else f"{doc_id}::part_{index:03d}",
-                doc_id=doc_id, dataset=dataset, title=title, text=piece,
-                chk_idx=index, strategy="document_aware", 
-                is_full_doc=is_full_doc
-            ) for index, piece in enumerate(pieces)]
+            chunk_id=f"{doc_id}::doc" if is_full_doc else f"{doc_id}::part_{index:03d}",
+            doc_id=doc_id, dataset=dataset, title=title, text=piece,
+            chk_idx=index, strategy="document_aware", 
+            is_full_doc=is_full_doc
+        ) for index, piece in enumerate(pieces)]
 
     def chunk_corpus(self, corpus: dict[str, dict[str, str]], dataset: str) -> Iterable[Chunk]:
         """Yield chunks for every document in a BEIR corpus."""

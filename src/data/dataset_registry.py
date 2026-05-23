@@ -24,7 +24,7 @@ class DatasetSpec:
         return self.name.replace("-", "_").lower()
 
 
-def load_registry(config_path: str = "datasets.yaml") -> dict[str, DatasetSpec]:
+def load_datasets(config_path: str = "datasets.yaml") -> dict[str, DatasetSpec]:
     """Parse ``configs/datasets.yaml`` and return a dict of dataset key -> spec."""
     raw = load_yaml(config_path)
     url_template = raw["url_template"]
@@ -45,7 +45,7 @@ def load_registry(config_path: str = "datasets.yaml") -> dict[str, DatasetSpec]:
 
 def get_spec(key: str, config_path: str = "datasets.yaml") -> DatasetSpec:
     """Convenience accessor for a single dataset."""
-    reg = load_registry(config_path)
+    reg = load_datasets(config_path)
     if key not in reg:
         raise KeyError(f"Unknown dataset key: {key!r}. Known: {list(reg)}")
     return reg[key]
