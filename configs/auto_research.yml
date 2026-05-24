@@ -25,10 +25,10 @@ defaults:
     - 1.00
 
   chunk_sizes:
+    - 192
     - 256
+    - 384
     - 512
-    - 768
-    - 1024
 
   overlap_ratios:
     - 0.00

@@ -5,7 +5,7 @@
 dataset: "scifact"
 
 # Chunk sizes must stay safely below MiniLM's 512-token transformer limit.
-chunk_sizes: [128, 192, 256]
+chunk_sizes: [192, 256, 384, 512]
 top_k_values: [5, 10, 15, 20]
 # Hybrid alpha values: 0.0 = BM25-only, 1.0 = vector-only.
 hybrid_alphas: [0.0, 0.25, 0.5, 0.75, 1.0]
