@@ -30,7 +30,7 @@ def ordered_datasets(long_df: pd.DataFrame) -> list[str]:
 def ordered_retrievers(long_df: pd.DataFrame) -> list[str]:
     """Return deterministic retriever order while keeping known retrievers first."""
     present = [str(retriever) for retriever in long_df["retriever"].dropna().unique()]
-    ordered = [retriever for retriever in EMBEDDING_METHOD if retriever in present]
+    ordered = [emb for emb in EMBEDDING_METHOD if emb in present]
     ordered.extend(sorted(retriever for retriever in present if retriever not in EMBEDDING_METHOD))
     return ordered
 

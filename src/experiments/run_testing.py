@@ -58,7 +58,10 @@ class WeaviateSettings:
 class ChunkingSettings:
     """Chunking settings used during re-indexing."""
 
+    min_chunk_tokens: int
+    full_doc_thr_tokens: int
     overlap_ratio: float
+    preserve_title: bool
     tokenizer_name: str | None
 
 
@@ -68,11 +71,14 @@ class TestingRow:
 
     axis: str
     value: float
+
     chunk_size: int
     top_k: int
     alpha: float
+
     retriever: str
     dataset: str
+
     recall_at_10: float
     mrr: float
     ndcg_at_10: float
@@ -90,6 +96,7 @@ class TestingArgs:
     test_calibration_config: str
     datasets_config: str
     dataset: str | None
+
     skip_alpha: bool
     skip_top_k: bool
     skip_chunk: bool
@@ -98,28 +105,28 @@ class TestingArgs:
 def read_defaults(cfg: dict[str, Any]) -> TestingConfig:
     """Read test_calibration defaults from config."""
     values = cfg["defaults"]
-    return TestingConfig(chunk_size=int(values["chunk_size"]), top_k=int(values["top_k"]), alpha=float(values["hybrid_alpha"]))
+    return TestingConfig(chunk_size=values["chunk_size"], top_k=values["top_k"], alpha=values["hybrid_alpha"])
 
 
 def read_weaviate_settings(cfg: dict[str, Any]) -> WeaviateSettings:
     """Read Weaviate settings from retrieval config."""
     values = cfg["weaviate"]
     return WeaviateSettings(
-        host=values["host"], http_port=int(values["http_port"]),
-        grpc_port=int(values["grpc_port"]), prefix=values["collection_prefix"],
-        distance=values["distance"], batch_size=int(values["batch_size"]))
+        host=values["host"], http_port=values["http_port"], grpc_port=values["grpc_port"], 
+        prefix=values["collection_prefix"], distance=values["distance"], batch_size=values["batch_size"])
 
 
 def read_chunking_settings(cfg: dict[str, Any]) -> ChunkingSettings:
-    """Read chunking settings from retrieval config."""
     values = cfg["chunking"]
-    return ChunkingSettings(overlap_ratio=float(values["overlap_ratio"]), tokenizer_name=values.get("tokenizer"))
+    return ChunkingSettings(
+        min_chunk_tokens=values["min_chunk_tokens"], full_doc_thr_tokens=values["full_doc_thr_tokens"], 
+        overlap_ratio=values["overlap_ratio"], preserve_title=values["preserve_title"], tokenizer_name=values["tokenizer"])
 
 
 def build_embedder(cfg: dict[str, Any]) -> MiniLMEmbedder:
     """Create the MiniLM embedder from retrieval config."""
     values = cfg["embedding"]
-    return MiniLMEmbedder(model_name=values["model_name"], batch_size=int(values["batch_size"]), normalize=bool(values["normalize"]), cache_dir=values["cache_dir"])
+    return MiniLMEmbedder(model_name=values["model_name"], batch_size=values["batch_size"], normalize=values["normalize"], cache_dir=values["cache_dir"])
 
 
 def build_retriever(
@@ -149,7 +156,14 @@ def reindex_collection(
         chunk_size: int, chunking: ChunkingSettings,
         embedder: MiniLMEmbedder, settings: WeaviateSettings):
     """Drop and rebuild the collection with the requested chunk size."""
-    chunker = AdaptiveDocChunker(chunk_size_tokens=chunk_size, overlap_ratio=chunking.overlap_ratio, tokenizer_name=chunking.tokenizer_name)
+    safe_min_chunk_tokens = min(chunking.min_chunk_tokens, chunk_size)
+    safe_full_doc_thr_tokens = min(chunking.full_doc_thr_tokens, chunk_size)
+
+    chunker = AdaptiveDocChunker(
+        chunk_size_tokens=chunk_size, min_chunk_tokens=safe_min_chunk_tokens, 
+        full_doc_thr_tokens=safe_full_doc_thr_tokens, overlap_ratio=chunking.overlap_ratio,
+        preserve_title=chunking.preserve_title, tokenizer_name=chunking.tokenizer_name)
+
     ensure_collection(client, coll, distance=settings.distance, recreate=True)
     chunks = list(chunker.chunk_corpus(beir.corpus, dataset=beir.spec.name))
     logger.info("Re-indexed with chunk_size=%d -> %d chunks.", chunk_size, len(chunks))
@@ -322,7 +336,14 @@ def run_test_calibration(args: TestingArgs):
                 [int(value) for value in test_calibration_cfg["chunk_sizes"]],
                 chunking, settings))
 
-    df = save_results(rows, test_calibration_cfg["output"]["csv_path"], test_calibration_cfg["output"]["plot_path"])
+    def format_output_path(path: str, dataset: str) -> str:
+        """Replace output path placeholders with the active dataset name."""
+        return path.format(dataset=dataset)
+
+    csv_path = format_output_path(test_calibration_cfg["output"]["csv_path"], spec.key)
+    plot_path = format_output_path(test_calibration_cfg["output"]["plot_path"], spec.key)
+
+    df = save_results(rows, csv_path, plot_path)
     print_recommendation(df)
 
 

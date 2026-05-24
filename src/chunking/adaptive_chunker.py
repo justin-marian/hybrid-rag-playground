@@ -7,9 +7,12 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
+from dotenv import load_dotenv
 from transformers import AutoTokenizer
 
 from src.utils.logging import get_logger
+
+load_dotenv()
 
 logger = get_logger(__name__)
 

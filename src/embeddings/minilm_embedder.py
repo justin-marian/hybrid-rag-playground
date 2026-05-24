@@ -8,11 +8,14 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 from src.utils.io import hash_text, json_dumps, safe_model_name
 from src.utils.logging import get_logger
 from src.utils.paths import resolve
+
+load_dotenv()
 
 logger = get_logger(__name__)
 

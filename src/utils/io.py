@@ -88,6 +88,15 @@ def path_or_default(value: str | None, default: Path) -> Path:
     return resolve(value) if value else default
 
 
+def read_yaml_if_exists(path: Path) -> dict[str, Any]:
+    """Read a YAML file if it exists, otherwise return an empty dictionary."""
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle) or {}
+    return data if isinstance(data, dict) else {}
+
+
 def read_csv_if_exists(path: Path) -> pd.DataFrame:
     """Read a CSV file if it exists, otherwise return an empty DataFrame."""
     if not path.exists() or not path.is_file():
